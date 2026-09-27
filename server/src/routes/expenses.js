@@ -94,6 +94,70 @@ router.post('/', validateExpense(false), async (req, res) => {
   }
 });
 
+// ─── Bulk Create Expenses (Import Center) ───────────────────────────
+router.post('/bulk', async (req, res) => {
+  try {
+    const { expenses } = req.body;
+    if (!Array.isArray(expenses) || expenses.length === 0) {
+      return res.status(400).json({ error: 'Lista de gastos inválida o vacía.' });
+    }
+
+    if (expenses.length > 500) {
+      return res.status(400).json({ error: 'El límite máximo por importación es de 500 gastos.' });
+    }
+
+    // Get user categories
+    const categories = await prisma.category.findMany({
+      where: { userId: req.userId },
+    });
+    const defaultCatId = categories[0]?.id;
+    const catMap = new Set(categories.map(c => c.id));
+
+    const records = [];
+    for (const item of expenses) {
+      const numAmount = parseFloat(item.amount);
+      if (isNaN(numAmount) || numAmount <= 0) continue;
+
+      const desc = (item.description || 'Gasto importado').toString().trim().slice(0, 255);
+      const catId = catMap.has(item.categoryId) ? item.categoryId : defaultCatId;
+      const parsedDate = item.date ? new Date(item.date) : new Date();
+      const validDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+      const method = item.paymentMethod ? item.paymentMethod.toString().trim().slice(0, 50) : 'Importación';
+
+      records.push({
+        amount: Math.round(numAmount * 100) / 100,
+        description: desc,
+        date: validDate,
+        paymentMethod: method,
+        userId: req.userId,
+        categoryId: catId,
+      });
+    }
+
+    if (records.length === 0) {
+      return res.status(400).json({ error: 'No se encontraron gastos válidos para importar.' });
+    }
+
+    await prisma.expense.createMany({
+      data: records,
+    });
+
+    securityLogger.info('EXPENSES_BULK_IMPORTED', {
+      userId: req.userId,
+      count: records.length,
+    });
+
+    res.status(201).json({
+      success: true,
+      count: records.length,
+      message: `Se importaron exitosamente ${records.length} gastos.`,
+    });
+  } catch (error) {
+    securityLogger.error('EXPENSES_BULK_IMPORT_ERROR', { ip: req.ip, userId: req.userId, message: error.message });
+    res.status(500).json({ error: 'Error al importar gastos masivamente.' });
+  }
+});
+
 // ─── Update expense ──────────────────────────────────────────────────
 router.put('/:id', validateUUIDParam('id'), validateExpense(true), async (req, res) => {
   try {

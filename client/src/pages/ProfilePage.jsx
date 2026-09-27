@@ -17,12 +17,14 @@ import {
   AlertCircle,
   X,
   CreditCard,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import PasswordStrengthMeter, { evaluatePassword } from '../components/PasswordStrengthMeter';
 import AppleWalletModal from '../components/AppleWalletModal';
+import ImportModal from '../components/ImportModal';
 import api from '../services/api';
 import './ProfilePage.css';
 
@@ -32,9 +34,11 @@ export default function ProfilePage() {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({ expensesCount: 0, categoriesCount: 0 });
+  const [categories, setCategories] = useState([]);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Change password form state
   const [pwdData, setPwdData] = useState({
@@ -57,6 +61,7 @@ export default function ProfilePage() {
           expensesCount: expData.total || expData.expenses?.length || 0,
           categoriesCount: catData.length || 0,
         });
+        setCategories(catData || []);
       } catch {
         // Silently continue if stats fail
       }
@@ -207,6 +212,17 @@ export default function ProfilePage() {
               <span>Vincular Apple Wallet / Apple Pay</span>
             </div>
             <span className="badge-shortcut">Atajos iOS</span>
+          </button>
+          <button
+            className="profile-action-btn"
+            onClick={() => setShowImportModal(true)}
+            id="btn-open-import"
+          >
+            <div className="action-btn-left">
+              <Sparkles size={18} className="action-icon text-purple" />
+              <span>Importar Gastos (CSV / Capturas)</span>
+            </div>
+            <span className="badge-shortcut">OCR / Banco</span>
           </button>
         </div>
       </div>
@@ -379,6 +395,22 @@ export default function ProfilePage() {
       <AppleWalletModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
+      />
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        categories={categories}
+        onImportSuccess={() => {
+          // Re-fetch user stats on import
+          api.getExpenses().then((expData) => {
+            setStats((prev) => ({
+              ...prev,
+              expensesCount: expData.total || expData.expenses?.length || 0,
+            }));
+          });
+        }}
       />
 
       {/* Confirm Logout Dialog */}

@@ -116,6 +116,13 @@ class ApiService {
     });
   }
 
+  bulkCreateExpenses(expenses) {
+    return this.request('/expenses/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ expenses }),
+    });
+  }
+
   updateExpense(id, data) {
     return this.request(`/expenses/${id}`, {
       method: 'PUT',

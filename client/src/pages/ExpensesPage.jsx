@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import ExpenseCard from '../components/ExpenseCard';
 import ExpenseForm from '../components/ExpenseForm';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ImportModal from '../components/ImportModal';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -18,6 +19,7 @@ export default function ExpensesPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [deletingExpense, setDeletingExpense] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
@@ -121,6 +123,15 @@ export default function ExpensesPage() {
               currency: 'DOP',
             })}
           </span>
+          <button
+            type="button"
+            className="btn-header-action"
+            onClick={() => setShowImport(true)}
+            title="Importar desde extracto bancario o captura de pantalla"
+          >
+            <Sparkles size={13} />
+            <span>Importar</span>
+          </button>
         </div>
       </header>
 
@@ -210,6 +221,14 @@ export default function ExpensesPage() {
           onCancel={() => setDeletingExpense(null)}
         />
       )}
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        categories={categories}
+        onImportSuccess={fetchData}
+      />
     </div>
   );
 }
