@@ -93,6 +93,31 @@
   padding: 4px;
 }
 
+.login-error-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  padding: 12px 14px;
+  border-radius: var(--radius-btn);
+  font-size: 13px;
+  line-height: 1.4;
+  animation: shake 0.3s ease;
+}
+
+.error-alert-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
 .login-submit {
   margin-top: 8px;
   display: flex;

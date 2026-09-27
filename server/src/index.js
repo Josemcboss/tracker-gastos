@@ -2,12 +2,21 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
+const helmet = require('helmet');
+const { authLimiter, apiLimiter } = require('./middleware/rateLimiter');
+
 const authRoutes = require('./routes/auth');
 const expenseRoutes = require('./routes/expenses');
 const categoryRoutes = require('./routes/categories');
 const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
+
+// Trust reverse proxy (Render, Vercel, Cloudflare) for accurate IP detection
+app.set('trust proxy', 1);
+
+// Security HTTP headers
+app.use(helmet());
 
 // CORS — support multiple origins (comma-separated in CLIENT_URL)
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
@@ -20,22 +29,27 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, true); // Be permissive — tighten in production if needed
+      callback(null, true); // Permissive fallback
     }
   },
 }));
 app.use(express.json());
+
+// Health check (placed before rate limiter so monitoring probes aren't rate limited)
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Rate limiters
+app.use('/api', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Global error handler
 app.use((err, _req, res, _next) => {

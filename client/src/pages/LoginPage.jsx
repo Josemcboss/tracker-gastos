@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import './LoginPage.css';
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage('');
     try {
       if (isRegister) {
         await register(formData.email, formData.password, formData.name);
@@ -29,6 +31,7 @@ export default function LoginPage() {
         showToast('¡Bienvenido de vuelta!');
       }
     } catch (error) {
+      setErrorMessage(error.message);
       showToast(error.message, 'error');
     } finally {
       setLoading(false);
@@ -122,6 +125,13 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+
+          {errorMessage && (
+            <div className="login-error-alert" role="alert">
+              <AlertCircle size={16} className="error-alert-icon" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           <button
             type="submit"
