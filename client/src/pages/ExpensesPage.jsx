@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, Receipt, Wallet } from 'lucide-react';
 import ExpenseCard from '../components/ExpenseCard';
 import ExpenseForm from '../components/ExpenseForm';
+import IncomeCard from '../components/IncomeCard';
+import IncomeForm from '../components/IncomeForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ImportModal from '../components/ImportModal';
 import { useToast } from '../context/ToastContext';
@@ -15,32 +17,47 @@ export default function ExpensesPage() {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [expenses, setExpenses] = useState([]);
+  const [mainTab, setMainTab] = useState('expenses'); // 'expenses' | 'incomes'
+  const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [editingExpense, setEditingExpense] = useState(null);
-  const [deletingExpense, setDeletingExpense] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
+  const [deletingItem, setDeletingItem] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
 
   const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
       const params = {};
       if (filterCategory) params.categoryId = filterCategory;
 
-      const [expData, catData] = await Promise.all([
-        api.getExpenses(params),
-        api.getCategories(),
-      ]);
-      setExpenses(expData.expenses);
-      setCategories(catData);
+      if (mainTab === 'expenses') {
+        const [expData, catData] = await Promise.all([
+          api.getExpenses(params),
+          api.getCategories(),
+        ]);
+        setItems(expData.expenses || []);
+        setCategories(catData || []);
+      } else {
+        const [incData, catData] = await Promise.all([
+          api.getIncomes(params),
+          api.getIncomeCategories(),
+        ]);
+        setItems(incData.incomes || []);
+        setCategories(catData || []);
+      }
     } catch (error) {
       showToast(error.message, 'error');
     } finally {
       setLoading(false);
     }
-  }, [filterCategory]);
+  }, [mainTab, filterCategory]);
+
+  useEffect(() => {
+    setFilterCategory('');
+  }, [mainTab]);
 
   useEffect(() => {
     fetchData();
@@ -48,31 +65,46 @@ export default function ExpensesPage() {
 
   const handleSubmit = async (formData) => {
     try {
-      if (editingExpense) {
-        await api.updateExpense(editingExpense.id, formData);
-        showToast('Gasto actualizado ✓');
+      if (mainTab === 'expenses') {
+        if (editingItem) {
+          await api.updateExpense(editingItem.id, formData);
+          showToast('Gasto actualizado ✓');
+        } else {
+          await api.createExpense(formData);
+          showToast('Gasto agregado ✓');
+        }
       } else {
-        await api.createExpense(formData);
-        showToast('Gasto agregado ✓');
+        if (editingItem) {
+          await api.updateIncome(editingItem.id, formData);
+          showToast('Ingreso actualizado ✓');
+        } else {
+          await api.createIncome(formData);
+          showToast('Ingreso registrado ✓');
+        }
       }
       setShowForm(false);
-      setEditingExpense(null);
+      setEditingItem(null);
       fetchData();
     } catch (error) {
       showToast(error.message, 'error');
     }
   };
 
-  const handleEdit = (expense) => {
-    setEditingExpense(expense);
+  const handleEdit = (item) => {
+    setEditingItem(item);
     setShowForm(true);
   };
 
   const handleDelete = async () => {
     try {
-      await api.deleteExpense(deletingExpense.id);
-      showToast('Gasto eliminado');
-      setDeletingExpense(null);
+      if (mainTab === 'expenses') {
+        await api.deleteExpense(deletingItem.id);
+        showToast('Gasto eliminado');
+      } else {
+        await api.deleteIncome(deletingItem.id);
+        showToast('Ingreso eliminado');
+      }
+      setDeletingItem(null);
       fetchData();
     } catch (error) {
       showToast(error.message, 'error');
@@ -80,23 +112,23 @@ export default function ExpensesPage() {
   };
 
   const openNew = () => {
-    setEditingExpense(null);
+    setEditingItem(null);
     setShowForm(true);
   };
 
-  // Group expenses by date
-  const groupedExpenses = expenses.reduce((groups, expense) => {
-    const dateKey = new Date(expense.date).toLocaleDateString('es-DO', {
+  // Group items by date
+  const groupedItems = items.reduce((groups, item) => {
+    const dateKey = new Date(item.date).toLocaleDateString('es-DO', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
     });
     if (!groups[dateKey]) groups[dateKey] = [];
-    groups[dateKey].push(expense);
+    groups[dateKey].push(item);
     return groups;
   }, {});
 
-  const periodTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const periodTotal = items.reduce((sum, e) => sum + e.amount, 0);
 
   return (
     <div className="page expenses-page">
@@ -112,28 +144,55 @@ export default function ExpensesPage() {
           </div>
           <div>
             <span className="greeting">Hola, {user?.name?.split(' ')[0]} 👋</span>
-            <h1>Tus gastos</h1>
+            <h1>{mainTab === 'expenses' ? 'Tus gastos' : 'Tus ingresos'}</h1>
           </div>
         </div>
         <div className="month-total">
-          <span className="month-total-label">Total</span>
-          <span className="month-total-amount">
+          <span className="month-total-label">
+            {mainTab === 'expenses' ? 'Total gastos' : 'Total ingresos'}
+          </span>
+          <span
+            className="month-total-amount"
+            style={{ color: mainTab === 'incomes' ? '#10B981' : undefined }}
+          >
+            {mainTab === 'incomes' ? '+' : ''}
             {periodTotal.toLocaleString('es-DO', {
               style: 'currency',
               currency: 'DOP',
             })}
           </span>
-          <button
-            type="button"
-            className="btn-header-action"
-            onClick={() => setShowImport(true)}
-            title="Importar desde extracto bancario o captura de pantalla"
-          >
-            <Sparkles size={13} />
-            <span>Importar</span>
-          </button>
+          {mainTab === 'expenses' && (
+            <button
+              type="button"
+              className="btn-header-action"
+              onClick={() => setShowImport(true)}
+              title="Importar desde extracto bancario o captura de pantalla"
+            >
+              <Sparkles size={13} />
+              <span>Importar</span>
+            </button>
+          )}
         </div>
       </header>
+
+      {/* Main Switcher: Gastos vs Ingresos */}
+      <div className="category-type-tabs" style={{ margin: '0 20px 12px' }}>
+        <button
+          className={`cat-type-tab ${mainTab === 'expenses' ? 'active' : ''}`}
+          onClick={() => setMainTab('expenses')}
+        >
+          <Receipt size={16} />
+          <span>Gastos</span>
+        </button>
+        <button
+          className={`cat-type-tab ${mainTab === 'incomes' ? 'active' : ''}`}
+          onClick={() => setMainTab('incomes')}
+          style={mainTab === 'incomes' ? { borderColor: 'rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.18)' } : undefined}
+        >
+          <Wallet size={16} />
+          <span>Ingresos</span>
+        </button>
+      </div>
 
       {/* Category filter bar */}
       <div className="filter-bar">
@@ -161,74 +220,106 @@ export default function ExpensesPage() {
         ))}
       </div>
 
-      {/* Expense list */}
+      {/* List */}
       <div className="expense-list">
         {loading ? (
           <div className="empty-state">
             <div className="loading-spinner" />
           </div>
-        ) : expenses.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-icon">📝</span>
-            <p>No hay gastos aún</p>
+            <span className="empty-icon">{mainTab === 'expenses' ? '📝' : '💰'}</span>
+            <p>{mainTab === 'expenses' ? 'No hay gastos aún' : 'No hay ingresos registrados'}</p>
             <p className="empty-sub">
-              Toca el botón + para agregar tu primer gasto
+              {mainTab === 'expenses'
+                ? 'Toca el botón + para registrar tu primer gasto'
+                : 'Toca el botón + para registrar tu primer ingreso'}
             </p>
           </div>
         ) : (
-          Object.entries(groupedExpenses).map(([date, items]) => (
+          Object.entries(groupedItems).map(([date, groupItems]) => (
             <div key={date} className="expense-group">
-              <h3 className="group-date">{date}</h3>
+              <span className="group-date">{date}</span>
               <div className="group-items">
-                {items.map((expense) => (
-                  <ExpenseCard
-                    key={expense.id}
-                    expense={expense}
-                    onEdit={handleEdit}
-                    onDelete={setDeletingExpense}
-                  />
-                ))}
+                {groupItems.map((item) =>
+                  mainTab === 'expenses' ? (
+                    <ExpenseCard
+                      key={item.id}
+                      expense={item}
+                      onEdit={handleEdit}
+                      onDelete={(e) => setDeletingItem(e)}
+                    />
+                  ) : (
+                    <IncomeCard
+                      key={item.id}
+                      income={item}
+                      onEdit={handleEdit}
+                      onDelete={(i) => setDeletingItem(i)}
+                    />
+                  )
+                )}
               </div>
             </div>
           ))
         )}
       </div>
 
-      {/* Floating action button */}
-      <button className="fab" onClick={openNew} aria-label="Agregar gasto" id="add-expense-btn">
-        <Plus size={28} strokeWidth={2.5} />
+      {/* Floating Add Button */}
+      <button
+        className="fab"
+        onClick={openNew}
+        aria-label={mainTab === 'expenses' ? 'Agregar gasto' : 'Agregar ingreso'}
+        id="add-item-fab"
+        style={mainTab === 'incomes' ? { background: '#10B981', boxShadow: '0 4px 20px rgba(16, 185, 129, 0.4)' } : undefined}
+      >
+        <Plus size={26} strokeWidth={2.5} />
       </button>
 
-      {/* Expense form modal */}
-      {showForm && (
+      {/* Expense Form Sheet */}
+      {showForm && mainTab === 'expenses' && (
         <ExpenseForm
-          expense={editingExpense}
+          expense={editingItem}
           categories={categories}
           onSubmit={handleSubmit}
           onClose={() => {
             setShowForm(false);
-            setEditingExpense(null);
+            setEditingItem(null);
           }}
         />
       )}
 
-      {/* Delete confirmation */}
-      {deletingExpense && (
-        <ConfirmDialog
-          title="Eliminar gasto"
-          message={`¿Estás seguro de que quieres eliminar "${deletingExpense.description}"?`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeletingExpense(null)}
+      {/* Income Form Sheet */}
+      {showForm && mainTab === 'incomes' && (
+        <IncomeForm
+          income={editingItem}
+          categories={categories}
+          onSubmit={handleSubmit}
+          onClose={() => {
+            setShowForm(false);
+            setEditingItem(null);
+          }}
         />
       )}
 
-      {/* Import Modal */}
+      {/* Bulk Import Center */}
       <ImportModal
         isOpen={showImport}
         onClose={() => setShowImport(false)}
         categories={categories}
         onImportSuccess={fetchData}
       />
+
+      {/* Confirm Delete Dialog */}
+      {deletingItem && (
+        <ConfirmDialog
+          title={mainTab === 'expenses' ? '¿Eliminar gasto?' : '¿Eliminar ingreso?'}
+          message={`¿Estás seguro de que deseas eliminar "${deletingItem.description}"? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          danger={true}
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingItem(null)}
+        />
+      )}
     </div>
   );
 }

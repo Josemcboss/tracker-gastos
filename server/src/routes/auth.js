@@ -40,6 +40,14 @@ router.post('/register', validateRegister, async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    const DEFAULT_INCOME_CATS = [
+      { name: 'Salario / Nómina',        color: '#10B981', icon: 'wallet' },
+      { name: 'Freelance / Servicios',   color: '#3B82F6', icon: 'briefcase' },
+      { name: 'Inversiones / Rendimientos', color: '#8B5CF6', icon: 'trending-up' },
+      { name: 'Ventas / Negocio',        color: '#F59E0B', icon: 'store' },
+      { name: 'Otros Ingresos',          color: '#6B7280', icon: 'plus-circle' },
+    ];
+
     const user = await prisma.user.create({
       data: {
         email,
@@ -47,6 +55,9 @@ router.post('/register', validateRegister, async (req, res) => {
         name,
         categories: {
           create: DEFAULT_CATEGORIES.map(cat => ({ ...cat, isDefault: true })),
+        },
+        incomeCategories: {
+          create: DEFAULT_INCOME_CATS.map(cat => ({ ...cat, isDefault: true })),
         },
       },
     });

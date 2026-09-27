@@ -161,6 +161,70 @@ class ApiService {
     });
   }
 
+  // ── Incomes ──
+  getIncomes(params = {}) {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') query.set(k, v);
+    });
+    const qs = query.toString();
+    return this.request(`/incomes${qs ? `?${qs}` : ''}`);
+  }
+
+  getIncomeSummary(params = {}) {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') query.set(k, v);
+    });
+    const qs = query.toString();
+    return this.request(`/incomes/summary${qs ? `?${qs}` : ''}`);
+  }
+
+  createIncome(data) {
+    return this.request('/incomes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateIncome(id, data) {
+    return this.request(`/incomes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteIncome(id) {
+    return this.request(`/incomes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── Income Categories ──
+  getIncomeCategories() {
+    return this.request('/income-categories');
+  }
+
+  createIncomeCategory(data) {
+    return this.request('/income-categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateIncomeCategory(id, data) {
+    return this.request(`/income-categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteIncomeCategory(id) {
+    return this.request(`/income-categories/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // ── Dashboard ──
   getSummary(params = {}) {
     const query = new URLSearchParams();

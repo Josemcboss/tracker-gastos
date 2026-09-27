@@ -15,8 +15,10 @@ model User {
   apiKey    String?  @unique
   createdAt DateTime @default(now())
 
-  expenses   Expense[]
-  categories Category[]
+  expenses         Expense[]
+  categories       Category[]
+  incomes          Income[]
+  incomeCategories IncomeCategory[]
 }
 
 model Category {
@@ -34,6 +36,21 @@ model Category {
   @@unique([name, userId])
 }
 
+model IncomeCategory {
+  id        String  @id @default(uuid())
+  name      String
+  color     String
+  icon      String
+  isDefault Boolean @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  incomes Income[]
+
+  @@unique([name, userId])
+}
+
 model Expense {
   id            String   @id @default(uuid())
   amount        Float
@@ -47,4 +64,19 @@ model Expense {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
+}
+
+model Income {
+  id          String   @id @default(uuid())
+  amount      Float
+  description String
+  date        DateTime
+  source      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   IncomeCategory @relation(fields: [categoryId], references: [id])
 }

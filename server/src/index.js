@@ -64,8 +64,8 @@ app.use(helmet({
 }));
 
 // OWASP A03 / A04: Limit request payload to prevent memory exhaustion and DoS
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: false, limit: '10kb' }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: false, limit: '2mb' }));
 
 // Health check (placed before rate limiter so monitoring probes aren't rate limited)
 app.get('/api/health', (_req, res) => {
@@ -82,6 +82,8 @@ app.use('/api/auth/change-password', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/incomes', require('./routes/incomes'));
+app.use('/api/income-categories', require('./routes/incomeCategories'));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/integrations', integrationRoutes);
 

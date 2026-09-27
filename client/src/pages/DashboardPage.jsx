@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { TrendingDown, TrendingUp } from 'lucide-react';
+import { TrendingDown, TrendingUp, Wallet, Receipt, ArrowUpRight, ArrowDownRight, Scale } from 'lucide-react';
 import DonutChart from '../components/DonutChart';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
@@ -12,13 +12,15 @@ const MONTH_NAMES = [
 
 export default function DashboardPage() {
   const { showToast } = useToast();
-  const [summary, setSummary] = useState(null);
+  const [expensesSummary, setExpensesSummary] = useState(null);
+  const [incomesSummary, setIncomesSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
+  const [chartView, setChartView] = useState('expenses'); // 'expenses' | 'incomes'
   const [activeCatIndex, setActiveCatIndex] = useState(null);
 
   useEffect(() => {
-    const fetchSummary = async () => {
+    const fetchSummaries = async () => {
       setLoading(true);
       try {
         const params = {};
@@ -38,29 +40,39 @@ export default function DashboardPage() {
             .toISOString().split('T')[0];
           params.endDate = now.toISOString().split('T')[0];
         }
-        // 'all' ⇒ no date params
+        // 'all' => no date params
 
-        const data = await api.getSummary(params);
-        setSummary(data);
+        const [expData, incData] = await Promise.all([
+          api.getSummary(params),
+          api.getIncomeSummary(params),
+        ]);
+        setExpensesSummary(expData);
+        setIncomesSummary(incData);
       } catch (error) {
         showToast(error.message, 'error');
       } finally {
         setLoading(false);
       }
     };
-    fetchSummary();
+    fetchSummaries();
   }, [period]);
 
+  const activeSummary = chartView === 'expenses' ? expensesSummary : incomesSummary;
+
+  const totalExpenses = expensesSummary?.total || 0;
+  const totalIncomes = incomesSummary?.total || 0;
+  const netBalance = totalIncomes - totalExpenses;
+
   const maxMonthly = useMemo(() => {
-    if (!summary?.byMonth?.length) return 0;
-    return Math.max(...summary.byMonth.map((m) => m.total));
-  }, [summary]);
+    if (!activeSummary?.byMonth?.length) return 0;
+    return Math.max(...activeSummary.byMonth.map((m) => m.total));
+  }, [activeSummary]);
 
   if (loading) {
     return (
       <div className="page dashboard-page">
         <header className="page-header single">
-          <h1>Resumen</h1>
+          <h1>Resumen Financiero</h1>
         </header>
         <div className="empty-state">
           <div className="loading-spinner" />
@@ -72,7 +84,7 @@ export default function DashboardPage() {
   return (
     <div className="page dashboard-page">
       <header className="page-header single">
-        <h1>Resumen</h1>
+        <h1>Resumen Financiero</h1>
       </header>
 
       {/* Period selector */}
@@ -86,7 +98,10 @@ export default function DashboardPage() {
           <button
             key={p.value}
             className={`period-chip ${period === p.value ? 'active' : ''}`}
-            onClick={() => setPeriod(p.value)}
+            onClick={() => {
+              setPeriod(p.value);
+              setActiveCatIndex(null);
+            }}
           >
             {p.label}
           </button>
@@ -94,21 +109,80 @@ export default function DashboardPage() {
       </div>
 
       <div className="dashboard-content">
+        {/* KPI Financial Overview Cards */}
+        <div className="kpi-grid">
+          <div className="kpi-card income-kpi">
+            <div className="kpi-header">
+              <span className="kpi-label">Ingresos</span>
+              <ArrowUpRight size={18} className="kpi-icon-inc" />
+            </div>
+            <span className="kpi-value inc-color">
+              +{totalIncomes.toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}
+            </span>
+          </div>
+
+          <div className="kpi-card expense-kpi">
+            <div className="kpi-header">
+              <span className="kpi-label">Gastos</span>
+              <ArrowDownRight size={18} className="kpi-icon-exp" />
+            </div>
+            <span className="kpi-value exp-color">
+              -{totalExpenses.toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}
+            </span>
+          </div>
+
+          <div className={`kpi-card balance-kpi ${netBalance >= 0 ? 'pos' : 'neg'}`}>
+            <div className="kpi-header">
+              <span className="kpi-label">Balance Neto</span>
+              <Scale size={18} className="kpi-icon-bal" />
+            </div>
+            <span className="kpi-value bal-color">
+              {netBalance >= 0 ? '+' : ''}
+              {netBalance.toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}
+            </span>
+          </div>
+        </div>
+
+        {/* Chart View Switcher: Gastos vs Ingresos */}
+        <div className="category-type-tabs" style={{ margin: '18px 0 14px' }}>
+          <button
+            className={`cat-type-tab ${chartView === 'expenses' ? 'active' : ''}`}
+            onClick={() => {
+              setChartView('expenses');
+              setActiveCatIndex(null);
+            }}
+          >
+            <Receipt size={16} />
+            <span>Gastos por Categoría</span>
+          </button>
+          <button
+            className={`cat-type-tab ${chartView === 'incomes' ? 'active' : ''}`}
+            onClick={() => {
+              setChartView('incomes');
+              setActiveCatIndex(null);
+            }}
+            style={chartView === 'incomes' ? { borderColor: 'rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.18)' } : undefined}
+          >
+            <Wallet size={16} />
+            <span>Ingresos por Categoría</span>
+          </button>
+        </div>
+
         {/* Donut chart + legend */}
-        {summary?.byCategory?.length > 0 ? (
+        {activeSummary?.byCategory?.length > 0 ? (
           <section className="dashboard-section">
             <DonutChart
-              data={summary.byCategory}
-              total={summary.total}
+              data={activeSummary.byCategory}
+              total={activeSummary.total}
               activeIndex={activeCatIndex}
               onActiveChange={setActiveCatIndex}
             />
 
             <div className="chart-legend">
-              {summary.byCategory.map((cat, i) => {
+              {activeSummary.byCategory.map((cat, i) => {
                 const pct =
-                  summary.total > 0
-                    ? ((cat.total / summary.total) * 100).toFixed(1)
+                  activeSummary.total > 0
+                    ? ((cat.total / activeSummary.total) * 100).toFixed(1)
                     : 0;
                 const isSelected = activeCatIndex === i;
                 const isAnySelected = activeCatIndex !== null;
@@ -140,32 +214,43 @@ export default function DashboardPage() {
         ) : (
           <div className="empty-state small">
             <span className="empty-icon">📊</span>
-            <p>No hay datos para este periodo</p>
+            <p>
+              {chartView === 'expenses'
+                ? 'No hay gastos registrados en este periodo'
+                : 'No hay ingresos registrados en este periodo'}
+            </p>
           </div>
         )}
 
         {/* Monthly bar chart */}
-        {summary?.byMonth?.length > 0 && (
+        {activeSummary?.byMonth?.length > 0 && (
           <section className="dashboard-section">
-            <h2 className="section-title">Gasto mensual</h2>
+            <h2 className="section-title">
+              {chartView === 'expenses' ? 'Evolución mensual de gastos' : 'Evolución mensual de ingresos'}
+            </h2>
             <div className="bar-chart">
-              {summary.byMonth.map((month, i) => {
+              {activeSummary.byMonth.map((month, i) => {
                 const [, m] = month.month.split('-');
                 const label = MONTH_NAMES[parseInt(m) - 1];
                 const heightPct =
-                  maxMonthly > 0 ? (month.total / maxMonthly) * 100 : 0;
-
+                  maxMonthly > 0
+                    ? Math.round((month.total / maxMonthly) * 100)
+                    : 0;
                 return (
-                  <div key={i} className="bar-item">
-                    <span className="bar-value">
+                  <div key={i} className="bar-col">
+                    <span className="bar-val">
                       {month.total >= 1000
                         ? `${(month.total / 1000).toFixed(1)}k`
-                        : `$${Math.round(month.total)}`}
+                        : month.total.toFixed(0)}
                     </span>
                     <div className="bar-track">
                       <div
                         className="bar-fill"
-                        style={{ height: `${Math.max(heightPct, 4)}%` }}
+                        style={{
+                          height: `${heightPct}%`,
+                          animationDelay: `${i * 60}ms`,
+                          backgroundColor: chartView === 'incomes' ? '#10B981' : undefined,
+                        }}
                       />
                     </div>
                     <span className="bar-label">{label}</span>
@@ -175,45 +260,6 @@ export default function DashboardPage() {
             </div>
           </section>
         )}
-
-        {/* Stats cards */}
-        <section className="dashboard-section stats-section">
-          <div className="stat-card">
-            <div
-              className="stat-icon"
-              style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)' }}
-            >
-              <TrendingDown size={20} color="var(--purple-primary)" />
-            </div>
-            <div>
-              <span className="stat-label">Total gastos</span>
-              <span className="stat-value">{summary?.expenseCount || 0}</span>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div
-              className="stat-icon"
-              style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)' }}
-            >
-              <TrendingUp size={20} color="var(--color-success)" />
-            </div>
-            <div>
-              <span className="stat-label">Promedio</span>
-              <span className="stat-value">
-                {summary?.expenseCount > 0
-                  ? (summary.total / summary.expenseCount).toLocaleString(
-                      'es-DO',
-                      {
-                        style: 'currency',
-                        currency: 'DOP',
-                        maximumFractionDigits: 0,
-                      }
-                    )
-                  : '$0'}
-              </span>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );

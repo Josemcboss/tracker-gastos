@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, Wallet, Receipt } from 'lucide-react';
 import { getIcon, AVAILABLE_ICONS } from '../utils/icons';
 import { useToast } from '../context/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -7,13 +7,15 @@ import api from '../services/api';
 import './CategoriesPage.css';
 
 const PRESET_COLORS = [
-  '#8B5CF6', '#A78BFA', '#C4B5FD', '#D946EF',
-  '#F472B6', '#6D28D9', '#52525B', '#34D399',
-  '#FBBF24', '#F87171', '#60A5FA', '#818CF8',
+  '#8B5CF6', '#10B981', '#3B82F6', '#F59E0B',
+  '#A78BFA', '#C4B5FD', '#D946EF', '#F472B6',
+  '#6D28D9', '#52525B', '#34D399', '#FBBF24',
+  '#F87171', '#60A5FA', '#818CF8', '#14B8A6',
 ];
 
 export default function CategoriesPage() {
   const { showToast } = useToast();
+  const [typeTab, setTypeTab] = useState('expenses'); // 'expenses' | 'incomes'
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -26,9 +28,15 @@ export default function CategoriesPage() {
   });
 
   const fetchCategories = async () => {
+    setLoading(true);
     try {
-      const data = await api.getCategories();
-      setCategories(data);
+      if (typeTab === 'expenses') {
+        const data = await api.getCategories();
+        setCategories(data);
+      } else {
+        const data = await api.getIncomeCategories();
+        setCategories(data);
+      }
     } catch (error) {
       showToast(error.message, 'error');
     } finally {
@@ -38,11 +46,15 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [typeTab]);
 
   const openNew = () => {
     setEditingCategory(null);
-    setFormData({ name: '', color: '#8B5CF6', icon: 'tag' });
+    setFormData({
+      name: '',
+      color: typeTab === 'expenses' ? '#8B5CF6' : '#10B981',
+      icon: typeTab === 'expenses' ? 'tag' : 'wallet',
+    });
     setShowForm(true);
   };
 
@@ -57,12 +69,22 @@ export default function CategoriesPage() {
     if (!formData.name.trim()) return;
 
     try {
-      if (editingCategory) {
-        await api.updateCategory(editingCategory.id, formData);
-        showToast('Categoría actualizada ✓');
+      if (typeTab === 'expenses') {
+        if (editingCategory) {
+          await api.updateCategory(editingCategory.id, formData);
+          showToast('Categoría de gasto actualizada ✓');
+        } else {
+          await api.createCategory(formData);
+          showToast('Categoría de gasto creada ✓');
+        }
       } else {
-        await api.createCategory(formData);
-        showToast('Categoría creada ✓');
+        if (editingCategory) {
+          await api.updateIncomeCategory(editingCategory.id, formData);
+          showToast('Categoría de ingreso actualizada ✓');
+        } else {
+          await api.createIncomeCategory(formData);
+          showToast('Categoría de ingreso creada ✓');
+        }
       }
       setShowForm(false);
       setEditingCategory(null);
@@ -74,7 +96,11 @@ export default function CategoriesPage() {
 
   const handleDelete = async () => {
     try {
-      await api.deleteCategory(deletingCategory.id);
+      if (typeTab === 'expenses') {
+        await api.deleteCategory(deletingCategory.id);
+      } else {
+        await api.deleteIncomeCategory(deletingCategory.id);
+      }
       showToast('Categoría eliminada');
       setDeletingCategory(null);
       fetchCategories();
@@ -93,6 +119,24 @@ export default function CategoriesPage() {
         </button>
       </header>
 
+      {/* Type Switcher: Gastos vs Ingresos */}
+      <div className="category-type-tabs">
+        <button
+          className={`cat-type-tab ${typeTab === 'expenses' ? 'active' : ''}`}
+          onClick={() => setTypeTab('expenses')}
+        >
+          <Receipt size={16} />
+          <span>Gastos</span>
+        </button>
+        <button
+          className={`cat-type-tab ${typeTab === 'incomes' ? 'active' : ''}`}
+          onClick={() => setTypeTab('incomes')}
+        >
+          <Wallet size={16} />
+          <span>Ingresos</span>
+        </button>
+      </div>
+
       <div className="categories-list">
         {loading ? (
           <div className="empty-state">
@@ -101,7 +145,7 @@ export default function CategoriesPage() {
         ) : categories.length === 0 ? (
           <div className="empty-state">
             <span className="empty-icon">🏷️</span>
-            <p>No hay categorías</p>
+            <p>No hay categorías registradas</p>
           </div>
         ) : (
           categories.map((cat) => {
@@ -128,15 +172,17 @@ export default function CategoriesPage() {
                     onClick={() => openEdit(cat)}
                     aria-label="Editar categoría"
                   >
-                    <Pencil size={16} />
+                    <Pencil size={15} />
                   </button>
-                  <button
-                    className="action-btn delete"
-                    onClick={() => setDeletingCategory(cat)}
-                    aria-label="Eliminar categoría"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {!cat.isDefault && (
+                    <button
+                      className="action-btn delete"
+                      onClick={() => setDeletingCategory(cat)}
+                      aria-label="Eliminar categoría"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -144,13 +190,15 @@ export default function CategoriesPage() {
         )}
       </div>
 
-      {/* Category form modal */}
+      {/* Create / Edit Modal */}
       {showForm && (
         <div className="form-overlay" onClick={() => setShowForm(false)}>
           <div className="form-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="form-header">
               <h2>
-                {editingCategory ? 'Editar categoría' : 'Nueva categoría'}
+                {editingCategory
+                  ? `Editar categoría de ${typeTab === 'expenses' ? 'gasto' : 'ingreso'}`
+                  : `Nueva categoría de ${typeTab === 'expenses' ? 'gasto' : 'ingreso'}`}
               </h2>
               <button
                 className="form-close"
@@ -167,58 +215,66 @@ export default function CategoriesPage() {
                 <input
                   id="cat-name"
                   type="text"
-                  className="form-input"
-                  placeholder="Nombre de la categoría"
+                  placeholder="Ej: Salario, Alquiler, Gym..."
                   value={formData.name}
                   onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
+                    setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
                   required
                   autoFocus
                 />
               </div>
 
+              {/* Color picker */}
               <div className="form-group">
                 <label>Color</label>
-                <div className="color-grid">
-                  {PRESET_COLORS.map((color) => (
+                <div className="color-presets">
+                  {PRESET_COLORS.map((c) => (
                     <button
-                      key={color}
+                      key={c}
                       type="button"
-                      className={`color-swatch ${formData.color === color ? 'selected' : ''}`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setFormData({ ...formData, color })}
+                      className={`color-btn ${formData.color === c ? 'selected' : ''}`}
+                      style={{ backgroundColor: c }}
+                      onClick={() =>
+                        setFormData((prev) => ({ ...prev, color: c }))
+                      }
                     >
-                      {formData.color === color && (
-                        <Check size={16} color="white" />
-                      )}
+                      {formData.color === c && <Check size={14} color="#FFF" />}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Icon selector */}
               <div className="form-group">
                 <label>Ícono</label>
                 <div className="icon-grid">
-                  {AVAILABLE_ICONS.map((iconName) => {
-                    const IconComp = getIcon(iconName);
+                  {AVAILABLE_ICONS.map((name) => {
+                    const IconComp = getIcon(name);
+                    const isSelected = formData.icon === name;
                     return (
                       <button
-                        key={iconName}
+                        key={name}
                         type="button"
-                        className={`icon-option ${formData.icon === iconName ? 'selected' : ''}`}
+                        className={`icon-btn ${isSelected ? 'selected' : ''}`}
                         onClick={() =>
-                          setFormData({ ...formData, icon: iconName })
+                          setFormData((prev) => ({ ...prev, icon: name }))
                         }
                       >
-                        <IconComp size={18} />
+                        <IconComp size={20} color={isSelected ? formData.color : undefined} />
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              <button type="submit" className="form-submit">
+              <button
+                type="submit"
+                className="form-submit-btn"
+                style={{
+                  backgroundColor: formData.color,
+                }}
+              >
                 {editingCategory ? 'Guardar cambios' : 'Crear categoría'}
               </button>
             </form>
@@ -226,11 +282,13 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Delete confirmation */}
+      {/* Confirm Delete Dialog */}
       {deletingCategory && (
         <ConfirmDialog
-          title="Eliminar categoría"
-          message={`¿Eliminar "${deletingCategory.name}"? Si tiene gastos asociados, no se podrá eliminar.`}
+          title="¿Eliminar categoría?"
+          message={`¿Estás seguro de que deseas eliminar "${deletingCategory.name}"? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          danger={true}
           onConfirm={handleDelete}
           onCancel={() => setDeletingCategory(null)}
         />

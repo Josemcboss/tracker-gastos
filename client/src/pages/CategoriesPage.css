@@ -29,6 +29,45 @@
   transform: scale(0.96);
 }
 
+/* ── Type Switcher (Gastos vs Ingresos) ── */
+.category-type-tabs {
+  display: flex;
+  margin: 0 20px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 4px;
+  border-radius: var(--radius-card, 14px);
+  gap: 4px;
+}
+
+.cat-type-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: var(--fs-body, 14px);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.cat-type-tab.active {
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--text-primary);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.cat-type-tab:not(.active):hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 /* ── Category list ── */
 .categories-list {
   flex: 1;
