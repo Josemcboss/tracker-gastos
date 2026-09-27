@@ -6,6 +6,11 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+const JWT_SECRET = process.env.JWT_SECRET || 'tracker_gastos_jwt_secret_key_2026_prod';
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️ ADVERTENCIA: JWT_SECRET no está configurada en las variables de entorno. Usando valor por defecto.');
+}
+
 /** Default categories created for every new user */
 const DEFAULT_CATEGORIES = [
   { name: 'Comida',           color: '#8B5CF6', icon: 'utensils' },
@@ -44,7 +49,7 @@ router.post('/register', async (req, res) => {
       },
     });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
       expiresIn: '30d',
     });
 
@@ -77,7 +82,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
       expiresIn: '30d',
     });
 

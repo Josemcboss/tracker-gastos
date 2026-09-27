@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'tracker_gastos_jwt_secret_key_2026_prod';
+
 /**
  * JWT authentication middleware.
  * Extracts the token from the Authorization header (Bearer <token>),
@@ -13,7 +15,7 @@ const auth = (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.userId;
     next();
   } catch (error) {
