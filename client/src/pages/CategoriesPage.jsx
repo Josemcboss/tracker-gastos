@@ -220,6 +220,7 @@ export default function CategoriesPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
+                  className="form-input"
                   required
                   autoFocus
                 />
@@ -228,18 +229,18 @@ export default function CategoriesPage() {
               {/* Color picker */}
               <div className="form-group">
                 <label>Color</label>
-                <div className="color-presets">
+                <div className="color-grid">
                   {PRESET_COLORS.map((c) => (
                     <button
                       key={c}
                       type="button"
-                      className={`color-btn ${formData.color === c ? 'selected' : ''}`}
+                      className={`color-swatch ${formData.color === c ? 'selected' : ''}`}
                       style={{ backgroundColor: c }}
                       onClick={() =>
                         setFormData((prev) => ({ ...prev, color: c }))
                       }
                     >
-                      {formData.color === c && <Check size={14} color="#FFF" />}
+                      {formData.color === c && <Check size={16} color="#FFF" strokeWidth={3} />}
                     </button>
                   ))}
                 </div>
@@ -256,12 +257,13 @@ export default function CategoriesPage() {
                       <button
                         key={name}
                         type="button"
-                        className={`icon-btn ${isSelected ? 'selected' : ''}`}
+                        className={`icon-option ${isSelected ? 'selected' : ''}`}
+                        style={isSelected ? { backgroundColor: formData.color, borderColor: formData.color } : {}}
                         onClick={() =>
                           setFormData((prev) => ({ ...prev, icon: name }))
                         }
                       >
-                        <IconComp size={20} color={isSelected ? formData.color : undefined} />
+                        <IconComp size={20} color={isSelected ? '#FFF' : undefined} />
                       </button>
                     );
                   })}
@@ -270,7 +272,7 @@ export default function CategoriesPage() {
 
               <button
                 type="submit"
-                className="form-submit-btn"
+                className="form-submit"
                 style={{
                   backgroundColor: formData.color,
                 }}

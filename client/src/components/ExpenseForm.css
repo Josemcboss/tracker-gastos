@@ -1,6 +1,11 @@
 .amount-input {
-  font-size: var(--fs-amount) !important;
-  font-weight: 700;
+  font-size: var(--fs-amount, 28px) !important;
+  font-weight: 700 !important;
+  color: var(--purple-light, #c4b5fd) !important;
+}
+
+input[type="date"] {
+  color-scheme: dark;
 }
 
 /* ── Category chip selector ── */
