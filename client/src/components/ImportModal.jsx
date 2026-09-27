@@ -302,13 +302,24 @@ export default function ImportModal({ isOpen, onClose, categories = [], onImport
                     onChange={() => toggleSelect(item.id)}
                   />
                   <div className="preview-inputs">
-                    <input
-                      type="text"
-                      className="preview-input desc"
-                      value={item.description}
-                      onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                      placeholder="Descripción"
-                    />
+                    <div className="preview-top-row">
+                      <input
+                        type="text"
+                        className="preview-input desc"
+                        value={item.description}
+                        onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                        placeholder="Descripción"
+                      />
+                      <button
+                        type="button"
+                        className="btn-remove-row"
+                        onClick={() => removeItem(item.id)}
+                        title="Eliminar fila"
+                        aria-label="Eliminar fila"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                     <div className="preview-sub-inputs">
                       <div className="input-dop-prefix">
                         <span>RD$</span>
@@ -339,14 +350,6 @@ export default function ImportModal({ isOpen, onClose, categories = [], onImport
                       </select>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="btn-remove-row"
-                    onClick={() => removeItem(item.id)}
-                    title="Eliminar fila"
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
               ))}
             </div>
