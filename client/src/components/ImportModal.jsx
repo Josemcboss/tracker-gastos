@@ -70,7 +70,7 @@ export default function ImportModal({ isOpen, onClose, categories = [], onImport
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target.result;
+      let content = (event.target.result || '').toString().replace(/[\0\u0000]/g, '');
       const items = parseCSV(content, categories);
       if (items.length === 0) {
         showToast('No se pudieron leer gastos del archivo. Verifica el formato CSV.', 'error');

@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
+  const [activeCatIndex, setActiveCatIndex] = useState(null);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -96,7 +97,12 @@ export default function DashboardPage() {
         {/* Donut chart + legend */}
         {summary?.byCategory?.length > 0 ? (
           <section className="dashboard-section">
-            <DonutChart data={summary.byCategory} total={summary.total} />
+            <DonutChart
+              data={summary.byCategory}
+              total={summary.total}
+              activeIndex={activeCatIndex}
+              onActiveChange={setActiveCatIndex}
+            />
 
             <div className="chart-legend">
               {summary.byCategory.map((cat, i) => {
@@ -104,8 +110,16 @@ export default function DashboardPage() {
                   summary.total > 0
                     ? ((cat.total / summary.total) * 100).toFixed(1)
                     : 0;
+                const isSelected = activeCatIndex === i;
+                const isAnySelected = activeCatIndex !== null;
                 return (
-                  <div key={i} className="legend-item">
+                  <div
+                    key={i}
+                    className={`legend-item ${isSelected ? 'highlighted' : (isAnySelected ? 'dimmed' : '')}`}
+                    onMouseEnter={() => setActiveCatIndex(i)}
+                    onMouseLeave={() => setActiveCatIndex(null)}
+                    onClick={() => setActiveCatIndex(activeCatIndex === i ? null : i)}
+                  >
                     <div
                       className="legend-dot"
                       style={{ backgroundColor: cat.color }}

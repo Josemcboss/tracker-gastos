@@ -76,6 +76,21 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.legend-item:hover,
+.legend-item.highlighted {
+  background: rgba(139, 92, 246, 0.14);
+  transform: translateX(4px);
+}
+
+.legend-item.dimmed {
+  opacity: 0.38;
 }
 
 .legend-dot {

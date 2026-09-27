@@ -17,6 +17,7 @@ const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const sanitizeString = (str) => {
   if (typeof str !== 'string') return str;
   return str
+    .replace(/[\0\u0000]/g, '') // strip null byte 0x00 (Postgres UTF-8 encoding violation)
     .replace(/[<>]/g, '') // strip < and >
     .trim();
 };

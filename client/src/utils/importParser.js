@@ -147,7 +147,9 @@ export function parseDateStr(raw) {
  * Parses bank CSV statements (Banco Popular, BHD, Banreservas, Chase, Apple Card, etc.)
  */
 export function parseCSV(csvContent = '', categories = []) {
-  const lines = csvContent.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  // Strip null bytes (0x00) and UTF-16 padding from Excel CSV exports
+  const cleanContent = (csvContent || '').replace(/[\0\u0000]/g, '');
+  const lines = cleanContent.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) return [];
 
   const delimiters = [',', ';', '\t', '|'];

@@ -1,19 +1,76 @@
 .donut-container {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 8px auto;
+  margin: 12px auto;
   width: fit-content;
 }
 
+/* Floating Tooltip Pill */
+.donut-tooltip {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px;
+  border-radius: var(--radius-full, 9999px);
+  background: rgba(24, 20, 48, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  font-size: var(--fs-caption, 12px);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  margin-bottom: 10px;
+}
+
+.donut-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.donut-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-tooltip-name {
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.donut-tooltip-pct {
+  font-weight: 700;
+  color: var(--color-primary-light, #a78bfa);
+  background: rgba(139, 92, 246, 0.2);
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.donut-svg-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .donut-svg {
-  filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.12));
+  filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.15));
+  overflow: visible;
 }
 
 .donut-segment {
-  animation: donutReveal 1s ease forwards;
-  opacity: 0;
+  animation: donutReveal 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  transition: stroke-width 0.25s ease, opacity 0.25s ease, filter 0.25s ease;
+  stroke-linecap: round;
 }
 
 @keyframes donutReveal {
@@ -28,19 +85,40 @@
 
 .donut-center {
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
+  pointer-events: auto;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  width: 120px;
+  text-align: center;
+}
+
+.donut-center.hover-active {
+  transform: translate(-50%, -50%) scale(1.08);
 }
 
 .donut-amount {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
   color: var(--text-primary);
+  transition: color 0.25s ease;
+  line-height: 1.2;
 }
 
 .donut-label {
-  font-size: var(--fs-caption);
+  font-size: 12px;
   color: var(--text-secondary);
+  font-weight: 600;
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.25s ease;
 }

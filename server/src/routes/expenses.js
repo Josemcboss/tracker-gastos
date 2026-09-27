@@ -137,11 +137,19 @@ router.post('/bulk', async (req, res) => {
       const numAmount = parseFloat(item.amount);
       if (isNaN(numAmount) || numAmount <= 0) continue;
 
-      const desc = (item.description || 'Gasto importado').toString().trim().slice(0, 255);
+      const desc = (item.description || 'Gasto importado')
+        .toString()
+        .replace(/[\0\u0000]/g, '')
+        .trim()
+        .slice(0, 255);
       const catId = (item.categoryId && catMap.has(item.categoryId)) ? item.categoryId : defaultCatId;
       const parsedDate = item.date ? new Date(item.date) : new Date();
       const validDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-      const method = item.paymentMethod ? item.paymentMethod.toString().trim().slice(0, 50) : 'Importación';
+      const method = (item.paymentMethod || 'Importación')
+        .toString()
+        .replace(/[\0\u0000]/g, '')
+        .trim()
+        .slice(0, 50);
 
       records.push({
         amount: Math.round(numAmount * 100) / 100,
