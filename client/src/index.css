@@ -155,9 +155,9 @@ a {
 .form-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.60);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 200;
   display: flex;
   align-items: flex-end;
@@ -174,6 +174,17 @@ a {
   to { transform: translateY(0); }
 }
 
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .form-sheet {
   width: 100%;
   max-height: 92vh;
@@ -183,6 +194,24 @@ a {
   padding: 24px 20px calc(20px + var(--safe-area-bottom));
   animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
   -webkit-overflow-scrolling: touch;
+}
+
+/* On tablet & desktop, center as a focused, elegant modal */
+@media (min-width: 640px) {
+  .form-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .form-sheet {
+    max-width: 500px;
+    border-radius: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 28px 26px 26px;
+  }
 }
 
 .form-header {
@@ -276,22 +305,101 @@ a {
   padding: 16px;
   background: var(--purple-primary);
   color: white;
+  border: none;
   border-radius: var(--radius-btn);
   font-size: var(--fs-body);
   font-weight: 600;
-  transition: background 0.2s ease, transform 0.15s ease;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   margin-top: 8px;
+}
+
+.form-submit:hover {
+  background: var(--purple-hover);
+  box-shadow: var(--purple-glow);
 }
 
 .form-submit:active {
   background: var(--purple-hover);
   transform: scale(0.98);
-  box-shadow: var(--purple-glow);
 }
 
 .form-submit:disabled {
   opacity: 0.6;
   pointer-events: none;
+}
+
+/* ── Global modal overlay and dialog (used by Import, Apple Wallet, Password) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: var(--bg-elevated, #18181b);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-lg, 18px);
+  padding: 24px;
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 40px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close-btn {
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+input[type="date"],
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: var(--bg-elevated, #18181b);
+  color: var(--text-primary, #fff);
 }
 
 /* ── Shared empty state ── */

@@ -251,7 +251,7 @@ export default function AppleWalletModal({ isOpen, onClose }) {
                   Puedes enviar un JSON con cualquiera de estos campos a través de la automatización:
                 </p>
                 <pre className="payload-code">
-{`POST ${apiHost}/api/integrations/apple-wallet
+{`POST ${fullBase}/integrations/apple-wallet
 Headers:
   Content-Type: application/json
   x-api-key: ${token}

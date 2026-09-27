@@ -26,8 +26,15 @@ input[type="date"] {
   color: var(--text-secondary);
   font-size: var(--fs-caption);
   font-weight: 500;
+  cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+}
+
+.category-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .category-chip.selected {
@@ -50,7 +57,14 @@ input[type="date"] {
   color: var(--text-secondary);
   font-size: var(--fs-caption);
   font-weight: 500;
+  cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.payment-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .payment-chip.selected {
