@@ -1,9 +1,17 @@
 .profile-page {
-  padding-bottom: calc(var(--tab-bar-height) + var(--safe-area-bottom) + 24px);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 20px 20px calc(var(--tab-bar-height) + var(--safe-area-bottom) + 36px);
+  padding-top: calc(20px + var(--safe-area-top));
 }
 
 .profile-header {
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 /* Hero Card */
@@ -17,6 +25,7 @@
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
 }
 
 .avatar-circle {
@@ -77,6 +86,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 24px;
+  flex-shrink: 0;
 }
 
 .profile-stat-box {
@@ -129,6 +139,7 @@
 /* Grouped Lists */
 .profile-group {
   margin-bottom: 24px;
+  flex-shrink: 0;
 }
 
 .profile-group-title {
@@ -183,6 +194,24 @@
   white-space: nowrap;
 }
 
+.badge-secure {
+  color: #34d399;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-shortcut {
+  font-size: 11px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #C4B5FD;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
 /* Action Buttons */
 .profile-action-btn {
   width: 100%;
@@ -225,4 +254,158 @@
 
 .text-danger {
   color: #ef4444;
+}
+
+/* Modal styles for Password Change */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-field label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.modal-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.modal-input-wrap input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.modal-pwd-toggle {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.modal-btn-cancel {
+  flex: 1;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-btn);
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.modal-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.modal-btn-submit {
+  flex: 1;
+  padding: 12px;
+  background: var(--purple-primary);
+  border: none;
+  border-radius: var(--radius-btn);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-btn-submit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.modal-btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }

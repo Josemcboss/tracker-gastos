@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import PasswordStrengthMeter, { evaluatePassword } from '../components/PasswordStrengthMeter';
 import './LoginPage.css';
 
 export default function LoginPage() {
@@ -20,8 +21,17 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage('');
+
+    if (isRegister) {
+      const evaluation = evaluatePassword(formData.password);
+      if (!evaluation.isValid) {
+        setErrorMessage('La contraseña no cumple con los requisitos mínimos de seguridad.');
+        return;
+      }
+    }
+
+    setLoading(true);
     try {
       if (isRegister) {
         await register(formData.email, formData.password, formData.name);
@@ -49,20 +59,26 @@ export default function LoginPage() {
         <div className="login-brand">
           <div className="brand-icon">💸</div>
           <h1>Expense Tracker</h1>
-          <p>Controla tus gastos de manera simple</p>
+          <p>Controla tus gastos con máxima seguridad</p>
         </div>
 
         {/* Toggle login / register */}
         <div className="login-toggle">
           <button
             className={`toggle-btn ${!isRegister ? 'active' : ''}`}
-            onClick={() => setIsRegister(false)}
+            onClick={() => {
+              setIsRegister(false);
+              setErrorMessage('');
+            }}
           >
             Iniciar sesión
           </button>
           <button
             className={`toggle-btn ${isRegister ? 'active' : ''}`}
-            onClick={() => setIsRegister(true)}
+            onClick={() => {
+              setIsRegister(true);
+              setErrorMessage('');
+            }}
           >
             Registrarse
           </button>
@@ -81,6 +97,7 @@ export default function LoginPage() {
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   required={isRegister}
+                  maxLength={100}
                   autoComplete="name"
                 />
               </div>
@@ -97,6 +114,7 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 required
+                maxLength={255}
                 autoComplete="email"
               />
             </div>
@@ -112,7 +130,6 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={(e) => handleChange('password', e.target.value)}
                 required
-                minLength={6}
                 autoComplete={isRegister ? 'new-password' : 'current-password'}
               />
               <button
@@ -124,6 +141,9 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            {isRegister && (
+              <PasswordStrengthMeter password={formData.password} showRules={true} />
+            )}
           </div>
 
           {errorMessage && (
@@ -142,7 +162,7 @@ export default function LoginPage() {
             {loading ? (
               <div className="loading-spinner small" />
             ) : isRegister ? (
-              'Crear cuenta'
+              'Crear cuenta segura'
             ) : (
               'Iniciar sesión'
             )}
@@ -155,7 +175,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className="switch-link-btn"
-                  onClick={() => setIsRegister(false)}
+                  onClick={() => {
+                    setIsRegister(false);
+                    setErrorMessage('');
+                  }}
                 >
                   Inicia sesión
                 </button>
@@ -166,7 +189,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className="switch-link-btn"
-                  onClick={() => setIsRegister(true)}
+                  onClick={() => {
+                    setIsRegister(true);
+                    setErrorMessage('');
+                  }}
                 >
                   Regístrate gratis
                 </button>

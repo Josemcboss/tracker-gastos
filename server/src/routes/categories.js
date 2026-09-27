@@ -1,6 +1,8 @@
 const express = require('express');
 const prisma = require('../db');
 const auth = require('../middleware/auth');
+const { validateCategory, validateUUIDParam } = require('../middleware/validate');
+const securityLogger = require('../utils/securityLogger');
 
 const router = express.Router();
 
@@ -16,18 +18,20 @@ router.get('/', async (req, res) => {
     });
     res.json(categories);
   } catch (error) {
-    console.error('List categories error:', error);
-    res.status(500).json({ error: 'Error al obtener categorías' });
+    securityLogger.error('CATEGORY_LIST_ERROR', { ip: req.ip, userId: req.userId, message: error.message });
+    res.status(500).json({ error: 'Error al obtener categorías.' });
   }
 });
 
 // ─── Create custom category ─────────────────────────────────────────
-router.post('/', async (req, res) => {
+router.post('/', validateCategory(false), async (req, res) => {
   try {
     const { name, color, icon } = req.body;
 
-    if (!name || !color) {
-      return res.status(400).json({ error: 'Nombre y color son requeridos' });
+    // Check category limit per user to avoid abuse (OWASP A04)
+    const count = await prisma.category.count({ where: { userId: req.userId } });
+    if (count >= 50) {
+      return res.status(400).json({ error: 'Has alcanzado el límite máximo de categorías permitidas (50).' });
     }
 
     const category = await prisma.category.create({
@@ -43,15 +47,15 @@ router.post('/', async (req, res) => {
     res.status(201).json(category);
   } catch (error) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Ya existe una categoría con ese nombre' });
+      return res.status(400).json({ error: 'Ya existe una categoría con ese nombre.' });
     }
-    console.error('Create category error:', error);
-    res.status(500).json({ error: 'Error al crear categoría' });
+    securityLogger.error('CATEGORY_CREATE_ERROR', { ip: req.ip, userId: req.userId, message: error.message });
+    res.status(500).json({ error: 'Error al crear categoría.' });
   }
 });
 
 // ─── Update category ─────────────────────────────────────────────────
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateUUIDParam('id'), validateCategory(true), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, color, icon } = req.body;
@@ -60,7 +64,7 @@ router.put('/:id', async (req, res) => {
       where: { id, userId: req.userId },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Categoría no encontrada' });
+      return res.status(404).json({ error: 'Categoría no encontrada.' });
     }
 
     const data = {};
@@ -76,15 +80,15 @@ router.put('/:id', async (req, res) => {
     res.json(category);
   } catch (error) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Ya existe una categoría con ese nombre' });
+      return res.status(400).json({ error: 'Ya existe una categoría con ese nombre.' });
     }
-    console.error('Update category error:', error);
-    res.status(500).json({ error: 'Error al actualizar categoría' });
+    securityLogger.error('CATEGORY_UPDATE_ERROR', { ip: req.ip, userId: req.userId, message: error.message });
+    res.status(500).json({ error: 'Error al actualizar categoría.' });
   }
 });
 
 // ─── Delete category ─────────────────────────────────────────────────
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateUUIDParam('id'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -92,12 +96,12 @@ router.delete('/:id', async (req, res) => {
       where: { id, userId: req.userId },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Categoría no encontrada' });
+      return res.status(404).json({ error: 'Categoría no encontrada.' });
     }
 
     // Prevent deletion if category has expenses
     const expenseCount = await prisma.expense.count({
-      where: { categoryId: id },
+      where: { categoryId: id, userId: req.userId },
     });
     if (expenseCount > 0) {
       return res.status(400).json({
@@ -107,10 +111,10 @@ router.delete('/:id', async (req, res) => {
 
     await prisma.category.delete({ where: { id } });
 
-    res.json({ message: 'Categoría eliminada' });
+    res.json({ message: 'Categoría eliminada exitosamente.' });
   } catch (error) {
-    console.error('Delete category error:', error);
-    res.status(500).json({ error: 'Error al eliminar categoría' });
+    securityLogger.error('CATEGORY_DELETE_ERROR', { ip: req.ip, userId: req.userId, message: error.message });
+    res.status(500).json({ error: 'Error al eliminar categoría.' });
   }
 });
 

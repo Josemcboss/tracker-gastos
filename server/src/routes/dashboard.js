@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../db');
 const auth = require('../middleware/auth');
+const securityLogger = require('../utils/securityLogger');
 
 const router = express.Router();
 
@@ -16,11 +17,16 @@ router.get('/summary', async (req, res) => {
 
     if (startDate || endDate) {
       where.date = {};
-      if (startDate) where.date.gte = new Date(startDate);
+      if (startDate) {
+        const start = new Date(startDate);
+        if (!isNaN(start.getTime())) where.date.gte = start;
+      }
       if (endDate) {
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        where.date.lte = end;
+        if (!isNaN(end.getTime())) {
+          end.setHours(23, 59, 59, 999);
+          where.date.lte = end;
+        }
       }
     }
 
@@ -69,8 +75,8 @@ router.get('/summary', async (req, res) => {
       byMonth: Object.values(byMonth).sort((a, b) => a.month.localeCompare(b.month)),
     });
   } catch (error) {
-    console.error('Dashboard summary error:', error);
-    res.status(500).json({ error: 'Error al obtener resumen' });
+    securityLogger.error('DASHBOARD_SUMMARY_ERROR', { ip: req.ip, userId: req.userId, message: error.message });
+    res.status(500).json({ error: 'Error al obtener resumen.' });
   }
 });
 

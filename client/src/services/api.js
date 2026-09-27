@@ -35,7 +35,7 @@ class ApiService {
     });
 
     // Auto-logout on 401
-    if (response.status === 401) {
+    if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/change-password')) {
       this.setToken(null);
       window.location.href = '/login';
       throw new Error('Sesión expirada');
@@ -54,14 +54,28 @@ class ApiService {
   login(email, password) {
     return this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email: email?.trim().toLowerCase(),
+        password,
+      }),
     });
   }
 
   register(email, password, name) {
     return this.request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({
+        email: email?.trim().toLowerCase(),
+        password,
+        name: name?.trim(),
+      }),
+    });
+  }
+
+  changePassword(currentPassword, newPassword) {
+    return this.request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
     });
   }
 
@@ -132,6 +146,17 @@ class ApiService {
     });
     const qs = query.toString();
     return this.request(`/dashboard/summary${qs ? `?${qs}` : ''}`);
+  }
+
+  // ── Integrations (Apple Wallet, etc.) ──
+  getIntegrationToken() {
+    return this.request('/integrations/token');
+  }
+
+  regenerateIntegrationToken() {
+    return this.request('/integrations/token/regenerate', {
+      method: 'POST',
+    });
   }
 }
 
