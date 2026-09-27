@@ -41,10 +41,26 @@ class ApiService {
       throw new Error('Sesión expirada');
     }
 
-    const data = await response.json();
+    let data;
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error('Error al procesar la respuesta del servidor.');
+      }
+    } else {
+      if (response.status === 404) {
+        throw new Error('El servidor se está actualizando. Por favor intenta en unos segundos.');
+      }
+      if (response.status === 502 || response.status === 503) {
+        throw new Error('El servidor en Render está iniciando. Por favor reintenta en unos segundos.');
+      }
+      throw new Error(`Error de conexión con el servidor (${response.status}).`);
+    }
 
     if (!response.ok) {
-      throw new Error(data.error || 'Algo salió mal');
+      throw new Error(data?.error || 'Algo salió mal');
     }
 
     return data;
@@ -161,4 +177,5 @@ class ApiService {
 }
 
 const api = new ApiService();
+export { API_BASE };
 export default api;

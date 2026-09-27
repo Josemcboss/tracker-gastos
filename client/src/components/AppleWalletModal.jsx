@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Smartphone,
 } from 'lucide-react';
-import api from '../services/api';
+import api, { API_BASE } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import './AppleWalletModal.css';
 
@@ -26,10 +26,10 @@ export default function AppleWalletModal({ isOpen, onClose }) {
   const [copiedToken, setCopiedToken] = useState(false);
   const [activeTab, setActiveTab] = useState('guide'); // 'guide' | 'payload'
 
-  const apiHost = window.location.origin.includes('localhost')
-    ? 'http://localhost:3001'
-    : window.location.origin;
-  const webhookUrl = `${apiHost}/api/integrations/apple-wallet?token=${token}`;
+  const fullBase = API_BASE.startsWith('http')
+    ? API_BASE
+    : `${window.location.origin}${API_BASE}`;
+  const webhookUrl = `${fullBase}/integrations/apple-wallet?token=${token}`;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,16 +48,41 @@ export default function AppleWalletModal({ isOpen, onClose }) {
     fetchToken();
   }, [isOpen]);
 
-  const handleCopy = (text, type) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // Fallback below
+    }
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return success;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCopy = async (text, type) => {
+    const success = await copyToClipboard(text);
     if (type === 'url') {
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
-      showToast('¡URL del Webhook copiada!');
+      showToast(success ? '¡URL del Webhook copiada!' : 'Selecciona el texto para copiar');
     } else {
       setCopiedToken(true);
       setTimeout(() => setCopiedToken(false), 2000);
-      showToast('¡Token copiado al portapapeles!');
+      showToast(success ? '¡Token copiado al portapapeles!' : 'Selecciona el token para copiar');
     }
   };
 
@@ -80,23 +105,17 @@ export default function AppleWalletModal({ isOpen, onClose }) {
   const handleTestTransaction = async () => {
     setTesting(true);
     try {
-      const response = await fetch(`${apiHost}/api/integrations/apple-wallet`, {
+      await api.request(`/integrations/apple-wallet?token=${token}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': token,
-        },
         body: JSON.stringify({
           amount: 250.00,
           merchant: 'Starbucks Coffee',
           cardName: 'Apple Pay Visa',
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Error en prueba');
       showToast('✅ ¡Transacción de prueba registrada exitosamente como Apple Wallet!');
     } catch (err) {
-      showToast(`Error: ${err.message}`, 'error');
+      showToast(err.message || 'Error en prueba', 'error');
     } finally {
       setTesting(false);
     }

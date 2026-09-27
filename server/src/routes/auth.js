@@ -12,7 +12,8 @@ const {
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'tracker_gastos_jwt_secret_key_2026_prod';
+const SECURE_FALLBACK = 'tracker_gastos_jwt_secret_key_2026_prod_secure_fallback_v1';
+const JWT_SECRET = process.env.JWT_SECRET || SECURE_FALLBACK;
 const TOKEN_EXPIRY = '7d'; // OWASP A07: Reasonable session validity window
 
 /** Default categories created for every new user */
