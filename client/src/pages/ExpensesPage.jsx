@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import ExpenseCard from '../components/ExpenseCard';
 import ExpenseForm from '../components/ExpenseForm';
@@ -11,6 +12,7 @@ import './ExpensesPage.css';
 export default function ExpensesPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -98,9 +100,18 @@ export default function ExpensesPage() {
     <div className="page expenses-page">
       {/* Header */}
       <header className="page-header">
-        <div>
-          <span className="greeting">Hola, {user?.name?.split(' ')[0]} 👋</span>
-          <h1>Tus gastos</h1>
+        <div
+          className="user-greeting-wrapper"
+          onClick={() => navigate('/profile')}
+          title="Ver mi perfil"
+        >
+          <div className="header-avatar-mini">
+            {user?.name?.trim()?.charAt(0)?.toUpperCase() || 'U'}
+          </div>
+          <div>
+            <span className="greeting">Hola, {user?.name?.split(' ')[0]} 👋</span>
+            <h1>Tus gastos</h1>
+          </div>
         </div>
         <div className="month-total">
           <span className="month-total-label">Total</span>

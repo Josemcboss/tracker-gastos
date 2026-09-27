@@ -100,3 +100,29 @@
   justify-content: center;
   min-height: 52px;
 }
+
+.login-switch-prompt {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.login-switch-prompt p {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.switch-link-btn {
+  background: none;
+  border: none;
+  color: var(--purple-primary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.switch-link-btn:hover {
+  color: #C4B5FD;
+}

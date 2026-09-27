@@ -1,6 +1,13 @@
 import './ConfirmDialog.css';
 
-export default function ConfirmDialog({ title, message, onConfirm, onCancel }) {
+export default function ConfirmDialog({
+  title,
+  message,
+  confirmText = 'Eliminar',
+  danger = true,
+  onConfirm,
+  onCancel,
+}) {
   return (
     <div className="confirm-overlay" onClick={onCancel}>
       <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
@@ -10,8 +17,11 @@ export default function ConfirmDialog({ title, message, onConfirm, onCancel }) {
           <button className="confirm-btn cancel" onClick={onCancel}>
             Cancelar
           </button>
-          <button className="confirm-btn danger" onClick={onConfirm}>
-            Eliminar
+          <button
+            className={`confirm-btn ${danger ? 'danger' : 'primary'}`}
+            onClick={onConfirm}
+          >
+            {confirmText}
           </button>
         </div>
       </div>

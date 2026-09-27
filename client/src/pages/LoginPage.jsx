@@ -127,15 +127,42 @@ export default function LoginPage() {
             type="submit"
             className="form-submit login-submit"
             disabled={loading}
+            id="btn-login-submit"
           >
             {loading ? (
               <div className="loading-spinner small" />
             ) : isRegister ? (
               'Crear cuenta'
             ) : (
-              'Entrar'
+              'Iniciar sesión'
             )}
           </button>
+
+          <div className="login-switch-prompt">
+            {isRegister ? (
+              <p>
+                ¿Ya tienes una cuenta?{' '}
+                <button
+                  type="button"
+                  className="switch-link-btn"
+                  onClick={() => setIsRegister(false)}
+                >
+                  Inicia sesión
+                </button>
+              </p>
+            ) : (
+              <p>
+                ¿No tienes una cuenta aún?{' '}
+                <button
+                  type="button"
+                  className="switch-link-btn"
+                  onClick={() => setIsRegister(true)}
+                >
+                  Regístrate gratis
+                </button>
+              </p>
+            )}
+          </div>
         </form>
       </div>
     </div>

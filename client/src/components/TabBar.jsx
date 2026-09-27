@@ -1,11 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Receipt, BarChart3, Tags } from 'lucide-react';
+import { Receipt, BarChart3, Tags, User } from 'lucide-react';
 import './TabBar.css';
 
 const tabs = [
   { path: '/',          label: 'Gastos',      icon: Receipt },
   { path: '/dashboard', label: 'Resumen',     icon: BarChart3 },
   { path: '/categories',label: 'Categorías',  icon: Tags },
+  { path: '/profile',   label: 'Perfil',      icon: User },
 ];
 
 export default function TabBar() {
