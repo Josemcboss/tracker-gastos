@@ -1,0 +1,55 @@
+.amount-input {
+  font-size: var(--fs-amount) !important;
+  font-weight: 700;
+}
+
+/* ── Category chip selector ── */
+.category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.category-chip.selected {
+  color: white;
+  border-color: transparent;
+}
+
+/* ── Payment method chips ── */
+.payment-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-chip {
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.payment-chip.selected {
+  background: var(--purple-primary);
+  color: white;
+  border-color: var(--purple-primary);
+}

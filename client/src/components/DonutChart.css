@@ -1,0 +1,46 @@
+.donut-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px auto;
+  width: fit-content;
+}
+
+.donut-svg {
+  filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.12));
+}
+
+.donut-segment {
+  animation: donutReveal 1s ease forwards;
+  opacity: 0;
+}
+
+@keyframes donutReveal {
+  from {
+    opacity: 0;
+    stroke-dasharray: 0 9999;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.donut-center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.donut-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.donut-label {
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+}

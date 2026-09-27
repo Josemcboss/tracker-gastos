@@ -1,0 +1,128 @@
+.expenses-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: var(--safe-area-top);
+}
+
+/* ── Header ── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+  flex-shrink: 0;
+}
+
+.greeting {
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.page-header h1 {
+  font-size: var(--fs-title);
+  font-weight: 700;
+}
+
+.month-total {
+  text-align: right;
+}
+
+.month-total-label {
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.month-total-amount {
+  font-size: var(--fs-section);
+  font-weight: 700;
+  color: var(--purple-primary);
+}
+
+/* ── Filter bar ── */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.filter-chip.active {
+  background: var(--purple-primary);
+  color: white;
+  border-color: var(--purple-primary);
+}
+
+/* ── Expense list ── */
+.expense-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px;
+  padding-bottom: calc(var(--tab-bar-height) + var(--safe-area-bottom) + 88px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.expense-group {
+  margin-bottom: 20px;
+}
+
+.group-date {
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── FAB ── */
+.fab {
+  position: fixed;
+  bottom: calc(var(--tab-bar-height) + var(--safe-area-bottom) + 16px);
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--purple-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 50;
+}
+
+.fab:active {
+  transform: scale(0.90);
+  box-shadow: var(--purple-glow);
+}
