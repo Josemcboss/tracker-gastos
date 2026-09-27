@@ -1,0 +1,40 @@
+/* Income Form Specific Styles */
+.income-form-sheet .form-input:focus {
+  border-color: #10B981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
+}
+
+.income-amount-input {
+  font-size: var(--fs-amount, 28px) !important;
+  font-weight: 700 !important;
+  color: #10B981 !important;
+}
+
+.income-form-submit {
+  width: 100%;
+  padding: 16px;
+  background: #10B981;
+  color: white;
+  border-radius: var(--radius-btn, 12px);
+  font-size: var(--fs-body, 16px);
+  font-weight: 600;
+  transition: all 0.2s ease;
+  margin-top: 12px;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+}
+
+.income-form-submit:hover {
+  background: #059669;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+.income-form-submit:active {
+  transform: scale(0.98);
+}
+
+input[type="date"] {
+  color-scheme: dark;
+}

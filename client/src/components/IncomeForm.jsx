@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, DollarSign, Calendar, Tag, Building2 } from 'lucide-react';
+import { X, DollarSign, Calendar, Building2 } from 'lucide-react';
 import { getIcon } from '../utils/icons';
 import './ExpenseForm.css';
+import './IncomeForm.css';
 
 export default function IncomeForm({ income, categories = [], onSubmit, onClose }) {
   const isEditing = !!income;
@@ -40,7 +41,7 @@ export default function IncomeForm({ income, categories = [], onSubmit, onClose 
 
   return (
     <div className="form-overlay" onClick={onClose}>
-      <div className="form-sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="form-sheet income-form-sheet" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="form-header">
           <h2>{isEditing ? 'Editar ingreso' : 'Nuevo ingreso'}</h2>
@@ -63,8 +64,10 @@ export default function IncomeForm({ income, categories = [], onSubmit, onClose 
                 placeholder="0.00"
                 value={formData.amount}
                 onChange={(e) => handleChange('amount', e.target.value)}
+                className="form-input amount-input income-amount-input"
                 required
                 autoFocus={!isEditing}
+                inputMode="decimal"
               />
             </div>
           </div>
@@ -78,6 +81,7 @@ export default function IncomeForm({ income, categories = [], onSubmit, onClose 
               placeholder="Ej: Pago quincenal, Proyecto freelance..."
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
+              className="form-input"
               required
             />
           </div>
@@ -111,7 +115,9 @@ export default function IncomeForm({ income, categories = [], onSubmit, onClose 
 
           {/* Source / Origen */}
           <div className="form-group">
-            <label htmlFor="income-source">Origen / Empresa (Opcional)</label>
+            <label htmlFor="income-source">
+              Origen / Empresa <span className="optional">(opcional)</span>
+            </label>
             <div className="input-with-icon">
               <Building2 size={18} className="input-icon" />
               <input
@@ -120,6 +126,7 @@ export default function IncomeForm({ income, categories = [], onSubmit, onClose 
                 placeholder="Ej: Empresa X, Cliente Y, Banco..."
                 value={formData.source}
                 onChange={(e) => handleChange('source', e.target.value)}
+                className="form-input"
               />
             </div>
           </div>
@@ -134,13 +141,14 @@ export default function IncomeForm({ income, categories = [], onSubmit, onClose 
                 type="date"
                 value={formData.date}
                 onChange={(e) => handleChange('date', e.target.value)}
+                className="form-input"
                 required
               />
             </div>
           </div>
 
           {/* Submit */}
-          <button type="submit" className="form-submit-btn" style={{ background: '#10B981' }}>
+          <button type="submit" className="income-form-submit">
             {isEditing ? 'Guardar cambios' : 'Registrar ingreso'}
           </button>
         </form>
