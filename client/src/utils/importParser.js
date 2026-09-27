@@ -58,56 +58,174 @@ export function autoCategorizeMerchant(merchant = '', categories = []) {
 }
 
 /**
- * Parses CSV text into expense objects
+ * Robust CSV row splitter that preserves content inside quotes
+ */
+export function splitCSVRow(line = '', delimiter = ',') {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"' || char === "'") {
+      inQuotes = !inQuotes;
+    } else if (char === delimiter && !inQuotes) {
+      result.push(current.trim().replace(/^["']|["']$/g, ''));
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim().replace(/^["']|["']$/g, ''));
+  return result;
+}
+
+/**
+ * Parses numbers with comma or dot decimals and currency symbols
+ */
+export function parseNumber(raw) {
+  if (raw === undefined || raw === null) return NaN;
+  let str = raw.toString().trim().replace(/[^\d.,-]/g, '');
+  if (!str) return NaN;
+
+  // Handle formats like 1,250.50 vs 1.250,50
+  if (str.includes(',') && str.includes('.')) {
+    if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+      // European/Spanish: 1.250,50 -> 1250.50
+      str = str.replace(/\./g, '').replace(',', '.');
+    } else {
+      // US/DR standard: 1,250.50 -> 1250.50
+      str = str.replace(/,/g, '');
+    }
+  } else if (str.includes(',')) {
+    const parts = str.split(',');
+    if (parts[1] && parts[1].length === 2) {
+      str = str.replace(',', '.');
+    } else {
+      str = str.replace(',', '');
+    }
+  }
+
+  const num = parseFloat(str);
+  return isNaN(num) ? NaN : Math.abs(num);
+}
+
+/**
+ * Parses dates into standard YYYY-MM-DD
+ */
+export function parseDateStr(raw) {
+  if (!raw) return new Date().toISOString().split('T')[0];
+  const clean = raw.toString().trim().replace(/^["']|["']$/g, '');
+
+  // DD/MM/YYYY or DD-MM-YYYY
+  const dmyMatch = clean.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
+  if (dmyMatch) {
+    const day = dmyMatch[1].padStart(2, '0');
+    const month = dmyMatch[2].padStart(2, '0');
+    let year = dmyMatch[3];
+    if (year.length === 2) year = `20${year}`;
+    return `${year}-${month}-${day}`;
+  }
+
+  // YYYY-MM-DD
+  const ymdMatch = clean.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+  if (ymdMatch) {
+    const year = ymdMatch[1];
+    const month = ymdMatch[2].padStart(2, '0');
+    const day = ymdMatch[3].padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  const d = new Date(clean);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().split('T')[0];
+  }
+
+  return new Date().toISOString().split('T')[0];
+}
+
+/**
+ * Parses bank CSV statements (Banco Popular, BHD, Banreservas, Chase, Apple Card, etc.)
  */
 export function parseCSV(csvContent = '', categories = []) {
   const lines = csvContent.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) return [];
 
-  // Detect delimiter
-  const firstLine = lines[0];
-  const delimiter = firstLine.includes(';') ? ';' : firstLine.includes('\t') ? '\t' : ',';
+  const delimiters = [',', ';', '\t', '|'];
+  let bestDelimiter = ',';
+  let headerLineIdx = -1;
+  let maxScore = -1;
+  let detectedHeaders = [];
 
-  const headers = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+  const keywords = [
+    'fecha', 'date', 'fec', 'concepto', 'desc', 'detalle', 'comercio',
+    'establecimiento', 'merchant', 'memo', 'monto', 'debito', 'débito',
+    'cargo', 'retiro', 'importe', 'amount', 'valor', 'saldo', 'balance', 'tipo'
+  ];
 
-  // Detect column indices
-  let dateIdx = headers.findIndex(h => h.includes('fecha') || h.includes('date'));
-  let descIdx = headers.findIndex(h => h.includes('desc') || h.includes('concepto') || h.includes('comercio') || h.includes('detalle') || h.includes('merchant'));
-  let amountIdx = headers.findIndex(h => h.includes('monto') || h.includes('importe') || h.includes('debito') || h.includes('amount') || h.includes('valor'));
+  // Scan the first 15 lines for the real table header row
+  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+    for (const d of delimiters) {
+      const parts = splitCSVRow(lines[i], d).map(p => p.toLowerCase());
+      const score = parts.filter(p => keywords.some(k => p.includes(k))).length;
+      if (score > maxScore && score >= 2) {
+        maxScore = score;
+        headerLineIdx = i;
+        bestDelimiter = d;
+        detectedHeaders = parts;
+      }
+    }
+  }
+
+  if (headerLineIdx === -1) {
+    headerLineIdx = 0;
+    bestDelimiter = lines[0].includes(';') ? ';' : lines[0].includes('\t') ? '\t' : ',';
+    detectedHeaders = splitCSVRow(lines[0], bestDelimiter).map(p => p.toLowerCase());
+  }
+
+  let dateIdx = detectedHeaders.findIndex(h => h.includes('fecha') || h.includes('date'));
+  let descIdx = detectedHeaders.findIndex(h => h.includes('desc') || h.includes('concepto') || h.includes('detalle') || h.includes('comercio') || h.includes('merchant'));
+  let debitIdx = detectedHeaders.findIndex(h => h.includes('debito') || h.includes('débito') || h.includes('cargo') || h.includes('retiro'));
+  let amountIdx = detectedHeaders.findIndex(h => h.includes('monto') || h.includes('importe') || h.includes('amount') || h.includes('valor'));
+  let creditIdx = detectedHeaders.findIndex(h => h.includes('credito') || h.includes('crédito') || h.includes('abono') || h.includes('deposito') || h.includes('depósito'));
+  let typeIdx = detectedHeaders.findIndex(h => h.includes('tipo') || h.includes('type'));
 
   if (dateIdx === -1) dateIdx = 0;
   if (descIdx === -1) descIdx = 1;
+  if (amountIdx === -1 && debitIdx !== -1) amountIdx = debitIdx;
   if (amountIdx === -1) amountIdx = 2;
 
   const expenses = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const row = lines[i].split(delimiter).map(col => col.trim().replace(/^["']|["']$/g, ''));
-    if (row.length <= Math.max(dateIdx, descIdx, amountIdx)) continue;
+  for (let i = headerLineIdx + 1; i < lines.length; i++) {
+    const row = splitCSVRow(lines[i], bestDelimiter);
+    if (row.length <= Math.max(dateIdx, descIdx)) continue;
+
+    // Filter out credit/deposits if separate debit/credit columns exist
+    if (debitIdx !== -1 && creditIdx !== -1) {
+      const debitVal = parseNumber(row[debitIdx]);
+      if (isNaN(debitVal) || debitVal <= 0) {
+        continue;
+      }
+    } else if (typeIdx !== -1) {
+      const typeVal = (row[typeIdx] || '').toLowerCase();
+      if (typeVal.includes('cr') || typeVal.includes('cred') || typeVal.includes('abono') || typeVal.includes('deposito')) {
+        continue;
+      }
+    }
 
     const rawDesc = row[descIdx] || 'Gasto importado';
-    const rawAmount = row[amountIdx] || '0';
-    const rawDate = row[dateIdx] || '';
-
-    // Clean amount (remove DOP, RD$, $, spaces)
-    const cleanNum = rawAmount.replace(/[^\d.,-]/g, '').replace(/,/g, '.');
-    const amount = Math.abs(parseFloat(cleanNum));
+    const rawAmt = (amountIdx !== -1 && row[amountIdx]) ? row[amountIdx] : (debitIdx !== -1 ? row[debitIdx] : '0');
+    const amount = parseNumber(rawAmt);
 
     if (isNaN(amount) || amount <= 0) continue;
 
-    let date = new Date();
-    if (rawDate) {
-      const parsed = new Date(rawDate);
-      if (!isNaN(parsed.getTime())) {
-        date = parsed;
-      }
-    }
+    const dateStr = parseDateStr(row[dateIdx]);
 
     expenses.push({
       id: `imp_${Date.now()}_${i}`,
       description: rawDesc,
       amount: Math.round(amount * 100) / 100,
-      date: date.toISOString().split('T')[0],
+      date: dateStr,
       categoryId: autoCategorizeMerchant(rawDesc, categories),
       paymentMethod: 'Importación CSV',
       selected: true,

@@ -106,10 +106,29 @@ router.post('/bulk', async (req, res) => {
       return res.status(400).json({ error: 'El límite máximo por importación es de 500 gastos.' });
     }
 
-    // Get user categories
-    const categories = await prisma.category.findMany({
+    // Get user categories (auto-create if missing)
+    let categories = await prisma.category.findMany({
       where: { userId: req.userId },
     });
+
+    if (categories.length === 0) {
+      const DEFAULT_CATS = [
+        { name: 'Comida', color: '#8B5CF6', icon: 'utensils' },
+        { name: 'Transporte', color: '#A78BFA', icon: 'car' },
+        { name: 'Vivienda', color: '#C4B5FD', icon: 'home' },
+        { name: 'Entretenimiento', color: '#D946EF', icon: 'gamepad-2' },
+        { name: 'Salud', color: '#F472B6', icon: 'heart-pulse' },
+        { name: 'Educación', color: '#6D28D9', icon: 'graduation-cap' },
+        { name: 'Otros', color: '#52525B', icon: 'ellipsis' },
+      ];
+      await prisma.category.createMany({
+        data: DEFAULT_CATS.map(c => ({ ...c, userId: req.userId, isDefault: true })),
+      });
+      categories = await prisma.category.findMany({
+        where: { userId: req.userId },
+      });
+    }
+
     const defaultCatId = categories[0]?.id;
     const catMap = new Set(categories.map(c => c.id));
 
@@ -119,7 +138,7 @@ router.post('/bulk', async (req, res) => {
       if (isNaN(numAmount) || numAmount <= 0) continue;
 
       const desc = (item.description || 'Gasto importado').toString().trim().slice(0, 255);
-      const catId = catMap.has(item.categoryId) ? item.categoryId : defaultCatId;
+      const catId = (item.categoryId && catMap.has(item.categoryId)) ? item.categoryId : defaultCatId;
       const parsedDate = item.date ? new Date(item.date) : new Date();
       const validDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
       const method = item.paymentMethod ? item.paymentMethod.toString().trim().slice(0, 50) : 'Importación';
@@ -135,26 +154,40 @@ router.post('/bulk', async (req, res) => {
     }
 
     if (records.length === 0) {
-      return res.status(400).json({ error: 'No se encontraron gastos válidos para importar.' });
+      return res.status(400).json({ error: 'No se encontraron gastos válidos con monto mayor a cero para importar.' });
     }
 
-    await prisma.expense.createMany({
-      data: records,
-    });
+    let insertedCount = 0;
+    try {
+      const batchResult = await prisma.expense.createMany({
+        data: records,
+      });
+      insertedCount = batchResult.count;
+    } catch (batchErr) {
+      // Fallback: insert row by row so valid rows succeed even if one has issues
+      for (const rec of records) {
+        try {
+          await prisma.expense.create({ data: rec });
+          insertedCount++;
+        } catch (singleErr) {
+          console.warn('Fallback single insert error:', singleErr.message);
+        }
+      }
+    }
 
     securityLogger.info('EXPENSES_BULK_IMPORTED', {
       userId: req.userId,
-      count: records.length,
+      count: insertedCount,
     });
 
     res.status(201).json({
       success: true,
-      count: records.length,
-      message: `Se importaron exitosamente ${records.length} gastos.`,
+      count: insertedCount,
+      message: `Se importaron exitosamente ${insertedCount} gastos.`,
     });
   } catch (error) {
     securityLogger.error('EXPENSES_BULK_IMPORT_ERROR', { ip: req.ip, userId: req.userId, message: error.message });
-    res.status(500).json({ error: 'Error al importar gastos masivamente.' });
+    res.status(500).json({ error: error.message || 'Error al importar gastos masivamente.' });
   }
 });
 

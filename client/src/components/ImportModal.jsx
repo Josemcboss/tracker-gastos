@@ -120,16 +120,30 @@ export default function ImportModal({ isOpen, onClose, categories = [], onImport
 
     setSaving(true);
     try {
-      const payload = selected.map((item) => ({
-        amount: parseFloat(item.amount),
-        description: item.description,
-        date: new Date(item.date).toISOString(),
-        categoryId: item.categoryId || categories[0]?.id,
-        paymentMethod: item.paymentMethod || 'Importación',
-      }));
+      const payload = selected
+        .map((item) => {
+          let validDate = new Date();
+          if (item.date) {
+            const d = new Date(item.date);
+            if (!isNaN(d.getTime())) validDate = d;
+          }
+          return {
+            amount: parseFloat(item.amount) || 0,
+            description: (item.description || 'Gasto importado').trim(),
+            date: validDate.toISOString(),
+            categoryId: item.categoryId || categories[0]?.id,
+            paymentMethod: item.paymentMethod || 'Importación',
+          };
+        })
+        .filter((i) => i.amount > 0);
 
-      await api.bulkCreateExpenses(payload);
-      showToast(`✅ ¡${payload.length} gastos importados exitosamente!`);
+      if (payload.length === 0) {
+        showToast('No hay gastos con montos válidos para importar.', 'error');
+        return;
+      }
+
+      const res = await api.bulkCreateExpenses(payload);
+      showToast(`✅ ¡${res.count || payload.length} gastos importados exitosamente!`);
       if (onImportSuccess) onImportSuccess();
       onClose();
     } catch (err) {
