@@ -16,6 +16,8 @@ const {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
+  jidNormalizedUser,
+  areJidsSameUser,
 } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const path = require('path');
@@ -24,18 +26,53 @@ const pino = require('pino');
 const prisma = require('../db');
 const { findBestCategory } = require('../utils/autoCategorize');
 
+/**
+ * Robustly extract text from various Baileys message shapes and wrappers
+ */
+function extractMessageText(message) {
+  if (!message) return '';
+
+  let msg = message;
+  // Unwrap nested containers
+  if (msg.ephemeralMessage?.message) {
+    msg = msg.ephemeralMessage.message;
+  }
+  if (msg.viewOnceMessage?.message) {
+    msg = msg.viewOnceMessage.message;
+  }
+  if (msg.viewOnceMessageV2?.message) {
+    msg = msg.viewOnceMessageV2.message;
+  }
+  if (msg.documentWithCaptionMessage?.message) {
+    msg = msg.documentWithCaptionMessage.message;
+  }
+  if (msg.editedMessage?.message?.protocolMessage?.editedMessage) {
+    msg = msg.editedMessage.message.protocolMessage.editedMessage;
+  }
+
+  return (
+    msg.conversation ||
+    msg.extendedTextMessage?.text ||
+    msg.imageMessage?.caption ||
+    msg.videoMessage?.caption ||
+    msg.documentMessage?.caption ||
+    ''
+  ).trim();
+}
+
 class WhatsAppBot {
   constructor() {
     this.socket = null;
-    this.qrCode = null;        // base64 data URL of the QR
+    this.qrCode = null; // base64 data URL of the QR
     this.status = 'disconnected'; // disconnected | connecting | waiting_scan | connected
     this.connectedUserId = null;
     this.connectedPhone = null;
     this.connectionStartTime = null;
+    this.connectedUnixSeconds = null;
     this.messageCount = 0;
     this.authDir = path.join(__dirname, '../../whatsapp_auth');
     this._reconnecting = false;
-    this._initialSync = true; // Flag to ignore historical messages on first connect
+    this.sentMessageIds = new Set();
   }
 
   /**
@@ -67,7 +104,6 @@ class WhatsAppBot {
     this.connectedUserId = userId;
     this.status = 'connecting';
     this.qrCode = null;
-    this._initialSync = true;
 
     // Ensure auth directory exists
     if (!fs.existsSync(this.authDir)) {
@@ -110,14 +146,8 @@ class WhatsAppBot {
           this.status = 'connected';
           this.qrCode = null;
           this.connectionStartTime = new Date().toISOString();
-          this.connectedPhone = this.socket.user?.id?.split(':')[0] || 'unknown';
-          this._initialSync = true;
-
-          // Mark initial sync complete after a delay (ignore old messages)
-          setTimeout(() => {
-            this._initialSync = false;
-            console.log('[WhatsApp] Ready to process new messages.');
-          }, 8000);
+          this.connectedUnixSeconds = Math.floor(Date.now() / 1000);
+          this.connectedPhone = this.socket.user?.id?.split(':')[0]?.replace(/[^0-9]/g, '') || 'unknown';
 
           console.log(`[WhatsApp] ✅ Connected as +${this.connectedPhone}`);
         }
@@ -141,6 +171,7 @@ class WhatsAppBot {
             this.qrCode = null;
             this.connectedPhone = null;
             this.connectionStartTime = null;
+            this.connectedUnixSeconds = null;
           }
         }
       });
@@ -148,11 +179,10 @@ class WhatsAppBot {
       // ── Persist credentials ──
       this.socket.ev.on('creds.update', saveCreds);
 
-      // ── Handle incoming messages ──
+      // ── Handle incoming & outgoing/synced messages ──
       this.socket.ev.on('messages.upsert', async ({ messages, type }) => {
-        // Only process real-time "notify" messages (not historical syncs)
-        if (type !== 'notify') return;
-        if (this._initialSync) return;
+        // Baileys sends 'notify' for incoming and 'append' for synced/self-sent messages
+        if (type !== 'notify' && type !== 'append') return;
 
         for (const msg of messages) {
           await this._handleMessage(msg);
@@ -185,6 +215,7 @@ class WhatsAppBot {
     this.qrCode = null;
     this.connectedPhone = null;
     this.connectionStartTime = null;
+    this.connectedUnixSeconds = null;
 
     if (clearSession) {
       // Remove stored auth files so next connect requires a new QR scan
@@ -206,28 +237,76 @@ class WhatsAppBot {
    */
   async _handleMessage(msg) {
     try {
-      // Extract text from the message
-      const text =
-        msg.message?.conversation ||
-        msg.message?.extendedTextMessage?.text ||
-        '';
+      if (!this.connectedUserId || !this.socket) return;
 
-      if (!text || !this.connectedUserId) return;
+      // Ignore if message was sent by the bot itself to prevent recursion
+      if (msg.key?.id && this.sentMessageIds.has(msg.key.id)) {
+        return;
+      }
 
-      // Get the remote JID (who sent / where it was sent)
+      // Check message timestamp: ignore old messages sent before bot connected
+      const rawTs = msg.messageTimestamp;
+      const msgTimestamp =
+        typeof rawTs === 'number'
+          ? rawTs
+          : (rawTs?.low ?? (typeof rawTs === 'object' ? Number(rawTs) : 0));
+
+      if (
+        this.connectedUnixSeconds &&
+        msgTimestamp &&
+        msgTimestamp < this.connectedUnixSeconds - 120
+      ) {
+        return;
+      }
+
+      // Extract text from the message (handles wrappers like ephemeral, viewOnce)
+      const text = extractMessageText(msg.message);
+      if (!text) return;
+
+      // Ignore messages that start with the bot's own response markers
+      if (
+        text.startsWith('✅ *¡Gasto registrado!') ||
+        text.startsWith('🤔 *No detecté') ||
+        text.startsWith('⚠️')
+      ) {
+        return;
+      }
+
+      // Get the remote JID
       const remoteJid = msg.key.remoteJid || '';
+      if (
+        !remoteJid ||
+        remoteJid === 'status@broadcast' ||
+        remoteJid.includes('@broadcast')
+      ) {
+        return;
+      }
 
-      // We process:
-      // 1. Self-chat messages (user messaging themselves)
-      // 2. Any message starting with a command prefix (#, /gasto, $)
-      const ownJid = this.socket?.user?.id || '';
-      const ownPhone = ownJid.split(':')[0];
-      const senderPhone = remoteJid.split('@')[0];
-      const isSelfChat = senderPhone === ownPhone;
+      const isGroup = remoteJid.endsWith('@g.us');
+      const ownJid = this.socket?.user?.id ? jidNormalizedUser(this.socket.user.id) : '';
+      const normRemoteJid = jidNormalizedUser(remoteJid);
+      const ownPhone = ownJid ? ownJid.split('@')[0].split(':')[0].replace(/[^0-9]/g, '') : '';
+      const remotePhone = remoteJid.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+
+      // Check if it's a self-chat ("Message yourself")
+      const isSameUser = ownJid && normRemoteJid && areJidsSameUser(ownJid, normRemoteJid);
+      const isPhoneMatch = ownPhone && remotePhone && ownPhone === remotePhone;
+      const isLidMatch = this.socket?.user?.lid && areJidsSameUser(this.socket.user.lid, remoteJid);
+      const isSelfChat = isSameUser || isPhoneMatch || isLidMatch;
       const hasPrefix = /^[#$\/]/.test(text.trim());
 
-      // Only process self-chat or prefixed messages
-      if (!isSelfChat && !hasPrefix) return;
+      // If it's a group, only process if it has a command prefix
+      if (isGroup && !hasPrefix) return;
+
+      // In direct chats, process if:
+      // 1. It's a self-chat (user messaging themselves)
+      // 2. OR it has an explicit prefix (#, $, /gasto)
+      // 3. OR it's fromMe with phone matching
+      if (!isSelfChat && !hasPrefix) {
+        if (!msg.key.fromMe || !isPhoneMatch) return;
+      }
+
+      console.log(`[WhatsApp] Processing message: "${text}" from ${remoteJid}`);
 
       // Strip the prefix if present
       let cleanText = text.trim();
@@ -244,18 +323,19 @@ class WhatsAppBot {
       );
 
       if (!amountMatch) {
-        // Send help message if no amount detected
-        await this._reply(remoteJid, msg, [
-          '🤔 No detecté un monto en tu mensaje.',
-          '',
-          '📝 *Formatos válidos:*',
-          '• Almuerzo 450',
-          '• 2000 Gasolina',
-          '• Uber 350.50',
-          '• RD$ 1500 Supermercado',
-          '',
-          '💡 Envía tus gastos desde este chat (Mensajes a ti mismo).',
-        ].join('\n'));
+        if (isSelfChat) {
+          await this._reply(remoteJid, msg, [
+            '🤔 *No detecté un monto en tu mensaje.*',
+            '',
+            '📝 *Formatos válidos:*',
+            '• Almuerzo 450',
+            '• 2000 Gasolina',
+            '• Uber 350.50',
+            '• RD$ 1500 Supermercado',
+            '',
+            '💡 Envía tus gastos desde este chat con tu propio número.',
+          ].join('\n'));
+        }
         return;
       }
 
@@ -332,7 +412,21 @@ class WhatsAppBot {
   async _reply(jid, quotedMsg, text) {
     try {
       if (!this.socket) return;
-      await this.socket.sendMessage(jid, { text }, { quoted: quotedMsg });
+      let sent;
+      try {
+        sent = await this.socket.sendMessage(jid, { text }, { quoted: quotedMsg });
+      } catch {
+        // Fallback without quote (needed in some self-chat contexts)
+        sent = await this.socket.sendMessage(jid, { text });
+      }
+
+      if (sent?.key?.id) {
+        this.sentMessageIds.add(sent.key.id);
+        if (this.sentMessageIds.size > 500) {
+          const first = this.sentMessageIds.values().next().value;
+          this.sentMessageIds.delete(first);
+        }
+      }
     } catch (err) {
       console.error('[WhatsApp] Reply error:', err.message);
     }
