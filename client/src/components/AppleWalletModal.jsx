@@ -107,6 +107,9 @@ export default function AppleWalletModal({ isOpen, onClose }) {
     try {
       await api.request(`/integrations/apple-wallet?token=${token}`, {
         method: 'POST',
+        headers: {
+          'x-api-key': token,
+        },
         body: JSON.stringify({
           amount: 250.00,
           merchant: 'Starbucks Coffee',

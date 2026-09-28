@@ -34,8 +34,13 @@ class ApiService {
       headers,
     });
 
-    // Auto-logout on 401
-    if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/change-password')) {
+    // Auto-logout on 401 (excluding auth verification and integration tests)
+    if (
+      response.status === 401 &&
+      !endpoint.includes('/auth/login') &&
+      !endpoint.includes('/auth/change-password') &&
+      !endpoint.includes('/integrations/')
+    ) {
       this.setToken(null);
       window.location.href = '/login';
       throw new Error('Sesión expirada');
