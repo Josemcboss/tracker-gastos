@@ -30,3 +30,7 @@ Thumbs.db
 .vscode/
 .idea/
 .neon
+
+# WhatsApp Bot Session
+whatsapp_auth/
+server/whatsapp_auth/
