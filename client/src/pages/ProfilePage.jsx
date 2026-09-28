@@ -20,6 +20,7 @@ import {
   Sparkles,
   Send,
   Camera,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -28,6 +29,7 @@ import PasswordStrengthMeter, { evaluatePassword } from '../components/PasswordS
 import AppleWalletModal from '../components/AppleWalletModal';
 import ImportModal from '../components/ImportModal';
 import TelegramModal from '../components/TelegramModal';
+import WhatsAppModal from '../components/WhatsAppModal';
 import ReceiptScannerModal from '../components/ReceiptScannerModal';
 import api from '../services/api';
 import './ProfilePage.css';
@@ -45,6 +47,7 @@ export default function ProfilePage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showTelegramModal, setShowTelegramModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
   // Change password form state
   const [pwdData, setPwdData] = useState({
@@ -208,6 +211,19 @@ export default function ProfilePage() {
       <div className="profile-group">
         <h3 className="profile-group-title">Integraciones</h3>
         <div className="profile-group-card">
+          <button
+            className="profile-action-btn"
+            onClick={() => setShowWhatsAppModal(true)}
+            id="btn-open-whatsapp"
+          >
+            <div className="action-btn-left">
+              <MessageCircle size={18} className="action-icon" style={{ color: '#25D366' }} />
+              <span>Bot de WhatsApp (Registro por Mensaje)</span>
+            </div>
+            <span className="badge-shortcut" style={{ background: 'rgba(37, 211, 102, 0.15)', color: '#25D366', borderColor: 'rgba(37, 211, 102, 0.3)' }}>
+              QR Scan
+            </span>
+          </button>
           <button
             className="profile-action-btn"
             onClick={() => setShowTelegramModal(true)}
@@ -447,6 +463,12 @@ export default function ProfilePage() {
       <TelegramModal
         isOpen={showTelegramModal}
         onClose={() => setShowTelegramModal(false)}
+      />
+
+      {/* WhatsApp Bot Modal */}
+      <WhatsAppModal
+        isOpen={showWhatsAppModal}
+        onClose={() => setShowWhatsAppModal(false)}
       />
 
       {/* Receipt Scanner Modal */}

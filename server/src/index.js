@@ -89,6 +89,7 @@ app.use('/api/subscriptions', require('./routes/subscriptions'));
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 // Global error handler (OWASP A05: Prevents sensitive error / stack leakage)
 app.use((err, req, res, _next) => {
