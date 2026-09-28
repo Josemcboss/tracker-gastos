@@ -1,0 +1,145 @@
+.budget-sheet {
+  max-width: 520px;
+}
+
+.budget-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.budget-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-top: -14px;
+  margin-bottom: 20px;
+}
+
+.budget-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.budget-cat-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-pill, 9999px);
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.budget-cat-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.budget-cat-chip.selected {
+  color: #fff;
+  border-color: transparent;
+}
+
+.cat-budget-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+}
+
+.budgets-existing-section {
+  margin-top: 28px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 18px;
+}
+
+.budgets-existing-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.budget-empty-msg {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.budget-loading {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 12px;
+}
+
+.budget-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.budget-manage-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.budget-manage-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.budget-cat-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.budget-manage-left strong {
+  display: block;
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.budget-limit-tag {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.btn-delete-budget {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-budget:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}

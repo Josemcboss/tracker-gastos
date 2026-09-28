@@ -1,0 +1,37 @@
+.goal-modal-sheet {
+  max-width: 500px;
+}
+
+.goal-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.goal-modal-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-top: -14px;
+  margin-bottom: 20px;
+}
+
+.goal-contribute-card {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: var(--radius-card, 16px);
+  padding: 14px 16px;
+}
+
+.goal-contribute-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.goal-contribute-status {
+  font-size: 12.5px;
+  color: #c4b5fd;
+}

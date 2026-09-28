@@ -1,7 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { TrendingDown, TrendingUp, Wallet, Receipt, ArrowUpRight, ArrowDownRight, Scale } from 'lucide-react';
+import { TrendingDown, TrendingUp, Wallet, Receipt, ArrowUpRight, ArrowDownRight, Scale, Download } from 'lucide-react';
 import DonutChart from '../components/DonutChart';
 import AdBanner from '../components/AdBanner';
+import BudgetSection from '../components/BudgetSection';
+import BudgetModal from '../components/BudgetModal';
+import SubscriptionSection from '../components/SubscriptionSection';
+import SubscriptionModal from '../components/SubscriptionModal';
+import SavingsGoalSection from '../components/SavingsGoalSection';
+import SavingsGoalModal from '../components/SavingsGoalModal';
+import ExportModal from '../components/ExportModal';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import './DashboardPage.css';
@@ -15,10 +22,21 @@ export default function DashboardPage() {
   const { showToast } = useToast();
   const [expensesSummary, setExpensesSummary] = useState(null);
   const [incomesSummary, setIncomesSummary] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
   const [chartView, setChartView] = useState('expenses'); // 'expenses' | 'incomes'
   const [activeCatIndex, setActiveCatIndex] = useState(null);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [budgetRefreshKey, setBudgetRefreshKey] = useState(0);
+
+  const [showSubModal, setShowSubModal] = useState(false);
+  const [subRefreshKey, setSubRefreshKey] = useState(0);
+
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [contributeGoal, setContributeGoal] = useState(null);
+  const [goalRefreshKey, setGoalRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchSummaries = async () => {
@@ -43,12 +61,14 @@ export default function DashboardPage() {
         }
         // 'all' => no date params
 
-        const [expData, incData] = await Promise.all([
+        const [expData, incData, catData] = await Promise.all([
           api.getSummary(params),
           api.getIncomeSummary(params),
+          api.getCategories(),
         ]);
         setExpensesSummary(expData);
         setIncomesSummary(incData);
+        setCategories(catData || []);
       } catch (error) {
         showToast(error.message, 'error');
       } finally {
@@ -84,8 +104,17 @@ export default function DashboardPage() {
 
   return (
     <div className="page dashboard-page">
-      <header className="page-header single">
+      <header className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1>Resumen Financiero</h1>
+        <button
+          type="button"
+          className="btn-header-action"
+          onClick={() => setShowExportModal(true)}
+          title="Descargar reporte en Excel o PDF"
+        >
+          <Download size={13} />
+          <span>Exportar</span>
+        </button>
       </header>
 
       {/* Period selector */}
@@ -223,6 +252,31 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Smart Category Budgets */}
+        <BudgetSection
+          onOpenManage={() => setShowBudgetModal(true)}
+          refreshTrigger={budgetRefreshKey}
+        />
+
+        {/* Subscriptions & Recurring Expenses */}
+        <SubscriptionSection
+          onOpenAdd={() => setShowSubModal(true)}
+          refreshTrigger={subRefreshKey}
+        />
+
+        {/* Savings Goals */}
+        <SavingsGoalSection
+          onOpenCreate={() => {
+            setContributeGoal(null);
+            setShowGoalModal(true);
+          }}
+          onOpenContribute={(goal) => {
+            setContributeGoal(goal);
+            setShowGoalModal(true);
+          }}
+          refreshTrigger={goalRefreshKey}
+        />
+
         {/* Monthly bar chart */}
         {activeSummary?.byMonth?.length > 0 && (
           <section className="dashboard-section">
@@ -265,6 +319,39 @@ export default function DashboardPage() {
         {/* Google AdSense Banner */}
         <AdBanner className="dashboard-ad-banner" />
       </div>
+
+      {/* Budget Management Sheet */}
+      <BudgetModal
+        isOpen={showBudgetModal}
+        onClose={() => setShowBudgetModal(false)}
+        categories={categories}
+        onBudgetUpdated={() => setBudgetRefreshKey((k) => k + 1)}
+      />
+
+      {/* Subscription Modal */}
+      <SubscriptionModal
+        isOpen={showSubModal}
+        onClose={() => setShowSubModal(false)}
+        categories={categories}
+        onSubscriptionSaved={() => setSubRefreshKey((k) => k + 1)}
+      />
+
+      {/* Savings Goal Modal */}
+      <SavingsGoalModal
+        isOpen={showGoalModal}
+        onClose={() => {
+          setShowGoalModal(false);
+          setContributeGoal(null);
+        }}
+        contributeGoal={contributeGoal}
+        onGoalSaved={() => setGoalRefreshKey((k) => k + 1)}
+      />
+
+      {/* Export Report Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
     </div>
   );
 }

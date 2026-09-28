@@ -250,6 +250,74 @@ class ApiService {
       method: 'POST',
     });
   }
+
+  // ── Budgets ──
+  getBudgets() {
+    return this.request('/budgets');
+  }
+
+  saveBudget(data) {
+    return this.request('/budgets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteBudget(id) {
+    return this.request(`/budgets/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── Subscriptions ──
+  getSubscriptions() {
+    return this.request('/subscriptions');
+  }
+
+  createSubscription(data) {
+    return this.request('/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateSubscription(id, data) {
+    return this.request(`/subscriptions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteSubscription(id) {
+    return this.request(`/subscriptions/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── Savings Goals ──
+  getGoals() {
+    return this.request('/goals');
+  }
+
+  createGoal(data) {
+    return this.request('/goals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  contributeToGoal(id, amount) {
+    return this.request(`/goals/${id}/contribute`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  }
+
+  deleteGoal(id) {
+    return this.request(`/goals/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 const api = new ApiService();

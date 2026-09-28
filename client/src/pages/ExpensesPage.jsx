@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, Receipt, Wallet } from 'lucide-react';
+import { Plus, Sparkles, Receipt, Wallet, Download } from 'lucide-react';
 import ExpenseCard from '../components/ExpenseCard';
 import ExpenseForm from '../components/ExpenseForm';
 import IncomeCard from '../components/IncomeCard';
 import IncomeForm from '../components/IncomeForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ImportModal from '../components/ImportModal';
+import ExportModal from '../components/ExportModal';
 import AdBanner from '../components/AdBanner';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +25,7 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingItem, setDeletingItem] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
@@ -162,17 +164,28 @@ export default function ExpensesPage() {
               currency: 'DOP',
             })}
           </span>
-          {mainTab === 'expenses' && (
+          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
             <button
               type="button"
               className="btn-header-action"
-              onClick={() => setShowImport(true)}
-              title="Importar desde extracto bancario o captura de pantalla"
+              onClick={() => setShowExport(true)}
+              title="Exportar a Excel o PDF"
             >
-              <Sparkles size={13} />
-              <span>Importar</span>
+              <Download size={13} />
+              <span>Exportar</span>
             </button>
-          )}
+            {mainTab === 'expenses' && (
+              <button
+                type="button"
+                className="btn-header-action"
+                onClick={() => setShowImport(true)}
+                title="Importar desde extracto bancario o captura de pantalla"
+              >
+                <Sparkles size={13} />
+                <span>Importar</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -311,6 +324,12 @@ export default function ExpensesPage() {
         onClose={() => setShowImport(false)}
         categories={categories}
         onImportSuccess={fetchData}
+      />
+
+      {/* Export Report Modal */}
+      <ExportModal
+        isOpen={showExport}
+        onClose={() => setShowExport(false)}
       />
 
       {/* Confirm Delete Dialog */}

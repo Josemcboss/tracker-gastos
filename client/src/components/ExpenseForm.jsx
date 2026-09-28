@@ -20,6 +20,8 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
     categoryId: '',
     paymentMethod: '',
   });
+  const [currency, setCurrency] = useState('DOP');
+  const [exchangeRate, setExchangeRate] = useState('59.49');
 
   useEffect(() => {
     if (expense) {
@@ -30,6 +32,8 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
         categoryId: expense.categoryId,
         paymentMethod: expense.paymentMethod || '',
       });
+      if (expense.currency) setCurrency(expense.currency);
+      if (expense.exchangeRate) setExchangeRate(String(expense.exchangeRate));
     } else if (categories.length > 0 && !formData.categoryId) {
       setFormData((prev) => ({ ...prev, categoryId: categories[0].id }));
     }
@@ -38,7 +42,18 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.amount || !formData.description || !formData.categoryId) return;
-    onSubmit(formData);
+
+    const rate = parseFloat(exchangeRate) || 1;
+    const finalAmount = currency === 'USD'
+      ? Math.round(parseFloat(formData.amount) * rate * 100) / 100
+      : parseFloat(formData.amount);
+
+    onSubmit({
+      ...formData,
+      amount: String(finalAmount),
+      currency,
+      exchangeRate: currency === 'USD' ? rate : 1,
+    });
   };
 
   const handleChange = (field, value) => {
@@ -57,9 +72,28 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Amount */}
+          {/* Currency Toggle & Amount */}
           <div className="form-group">
-            <label htmlFor="expense-amount">Monto</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <label htmlFor="expense-amount" style={{ margin: 0 }}>Monto</label>
+              <div className="currency-selector" style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  className={`currency-btn ${currency === 'DOP' ? 'active' : ''}`}
+                  onClick={() => setCurrency('DOP')}
+                >
+                  RD$ (DOP)
+                </button>
+                <button
+                  type="button"
+                  className={`currency-btn ${currency === 'USD' ? 'active' : ''}`}
+                  onClick={() => setCurrency('USD')}
+                >
+                  $ (USD)
+                </button>
+              </div>
+            </div>
+
             <div className="input-with-icon">
               <DollarSign size={18} className="input-icon" />
               <input
@@ -76,6 +110,27 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
                 inputMode="decimal"
               />
             </div>
+
+            {currency === 'USD' && (
+              <div
+                style={{
+                  marginTop: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '12px',
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(139, 92, 246, 0.25)',
+                }}
+              >
+                <span>Tasa: RD$ <strong>{exchangeRate}</strong></span>
+                <span style={{ color: '#C4B5FD', fontWeight: '700' }}>
+                  ≈ RD$ {(((parseFloat(formData.amount) || 0) * (parseFloat(exchangeRate) || 1))).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Description */}

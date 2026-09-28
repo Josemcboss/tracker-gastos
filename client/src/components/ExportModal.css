@@ -1,0 +1,139 @@
+.export-sheet {
+  max-width: 520px;
+}
+
+.export-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.export-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-top: -14px;
+  margin-bottom: 22px;
+}
+
+.export-section-group {
+  margin-bottom: 22px;
+}
+
+.export-group-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.export-format-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-format-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-card, 16px);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.export-format-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.export-format-card.selected {
+  border-color: var(--purple-primary);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.format-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.format-icon-box.excel {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+}
+
+.format-icon-box.pdf {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+
+.format-card-info {
+  flex: 1;
+}
+
+.format-card-info strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.format-card-info span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.format-check {
+  color: var(--purple-primary);
+}
+
+/* Period chips */
+.export-period-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.period-chip {
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-pill, 999px);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.period-chip.selected {
+  background: var(--purple-primary);
+  color: #fff;
+  border-color: var(--purple-primary);
+}
+
+.btn-export-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}

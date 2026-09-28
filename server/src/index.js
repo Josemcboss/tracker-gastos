@@ -84,6 +84,9 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/incomes', require('./routes/incomes'));
 app.use('/api/income-categories', require('./routes/incomeCategories'));
+app.use('/api/budgets', require('./routes/budgets'));
+app.use('/api/subscriptions', require('./routes/subscriptions'));
+app.use('/api/goals', require('./routes/goals'));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/integrations', integrationRoutes);
 

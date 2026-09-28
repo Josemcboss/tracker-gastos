@@ -1,0 +1,17 @@
+.sub-modal-sheet {
+  max-width: 500px;
+}
+
+.sub-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sub-modal-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-top: -14px;
+  margin-bottom: 20px;
+}

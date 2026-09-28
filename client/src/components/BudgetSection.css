@@ -1,0 +1,234 @@
+.budget-section {
+  margin-top: 24px;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-manage-link {
+  background: transparent;
+  border: none;
+  color: var(--purple-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-manage-link:hover {
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.budget-loading-box {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.budget-cta-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(16, 185, 129, 0.04));
+  border: 1px dashed rgba(139, 92, 246, 0.3);
+  border-radius: var(--radius-card, 16px);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.budget-cta-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.budget-cta-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.btn-setup-budgets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--purple-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn, 12px);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-setup-budgets:hover {
+  background: var(--purple-hover);
+  transform: translateY(-1px);
+}
+
+/* Global summary card */
+.budget-global-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card, 16px);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+
+.budget-global-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.budget-global-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.budget-global-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.budget-of-total {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.budget-badge-status {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.budget-track-global {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.budget-fill-global {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* Items breakdown */
+.budget-items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.budget-card-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 12px 14px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.budget-card-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.budget-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.budget-item-cat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.budget-cat-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.budget-item-name {
+  display: block;
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.budget-item-sub {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.budget-item-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.budget-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.budget-item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+}
+
+.budget-remaining-text {
+  color: var(--text-secondary);
+}
+
+.budget-status-label {
+  font-weight: 600;
+}
