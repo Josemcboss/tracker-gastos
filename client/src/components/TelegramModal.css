@@ -1,0 +1,245 @@
+.telegram-sheet {
+  max-width: 520px;
+}
+
+.telegram-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.telegram-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #229ed9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(34, 158, 217, 0.4);
+}
+
+.telegram-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.telegram-loading {
+  padding: 40px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+.telegram-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+/* Status Bar */
+.telegram-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.telegram-status-bar.connected {
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  color: #34d399;
+}
+
+.telegram-status-bar.disconnected {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.connected .status-dot {
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+}
+
+.disconnected .status-dot {
+  background: #71717a;
+}
+
+.btn-telegram-unlink {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-telegram-unlink:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Action Box */
+.telegram-action-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-telegram-connect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #229ed9;
+  color: #fff;
+  text-decoration: none;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(34, 158, 217, 0.4);
+}
+
+.btn-telegram-connect:hover {
+  background: #1b86ba;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(34, 158, 217, 0.5);
+}
+
+.btn-telegram-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-telegram-copy:hover {
+  border-color: #229ed9;
+  color: #229ed9;
+}
+
+/* Instructions */
+.telegram-instructions h3 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.telegram-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.telegram-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.telegram-steps strong {
+  color: var(--text-primary);
+}
+
+.telegram-steps code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  color: #a78bfa;
+}
+
+/* Examples Card */
+.telegram-examples-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.examples-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.examples-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .examples-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.example-bubble {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.example-bubble strong {
+  color: #c4b5fd;
+}

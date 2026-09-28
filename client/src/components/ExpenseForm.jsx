@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, DollarSign, Calendar } from 'lucide-react';
+import { X, DollarSign, Calendar, Camera, Sparkles } from 'lucide-react';
 import { getIcon } from '../utils/icons';
+import { autoCategorizeMerchant } from '../utils/importParser';
 import './ExpenseForm.css';
 
 const PAYMENT_METHODS = [
@@ -10,7 +11,7 @@ const PAYMENT_METHODS = [
   'Transferencia',
 ];
 
-export default function ExpenseForm({ expense, categories, onSubmit, onClose }) {
+export default function ExpenseForm({ expense, categories, onSubmit, onClose, onOpenScanner }) {
   const isEditing = !!expense;
 
   const [formData, setFormData] = useState({
@@ -22,6 +23,7 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
   });
   const [currency, setCurrency] = useState('DOP');
   const [exchangeRate, setExchangeRate] = useState('59.49');
+  const [autoMatched, setAutoMatched] = useState(null);
 
   useEffect(() => {
     if (expense) {
@@ -60,15 +62,45 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleDescChange = (val) => {
+    handleChange('description', val);
+    if (!isEditing && val.trim().length >= 3) {
+      const matchId = autoCategorizeMerchant(val, categories);
+      if (matchId) {
+        const cat = categories.find((c) => c.id === matchId);
+        if (cat && !cat.name.toLowerCase().includes('otro')) {
+          handleChange('categoryId', matchId);
+          setAutoMatched(cat.name);
+        }
+      }
+    }
+  };
+
   return (
     <div className="form-overlay" onClick={onClose}>
       <div className="form-sheet" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="form-header">
           <h2>{isEditing ? 'Editar gasto' : 'Nuevo gasto'}</h2>
-          <button className="form-close" onClick={onClose} aria-label="Cerrar">
-            <X size={22} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {!isEditing && onOpenScanner && (
+              <button
+                type="button"
+                className="btn-scan-receipt-header"
+                onClick={() => {
+                  onClose();
+                  onOpenScanner();
+                }}
+                title="Escanear recibo o factura con cámara"
+              >
+                <Camera size={14} />
+                <span>Escanear Factura</span>
+              </button>
+            )}
+            <button className="form-close" onClick={onClose} aria-label="Cerrar">
+              <X size={22} />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -160,13 +192,21 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
 
           {/* Description */}
           <div className="form-group">
-            <label htmlFor="expense-desc">Descripción</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <label htmlFor="expense-desc" style={{ margin: 0 }}>Descripción</label>
+              {autoMatched && (
+                <span style={{ fontSize: '11px', color: '#a78bfa', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  <Sparkles size={12} />
+                  Auto: {autoMatched}
+                </span>
+              )}
+            </div>
             <input
               id="expense-desc"
               type="text"
-              placeholder="¿En qué gastaste?"
+              placeholder="¿En qué gastaste? (Ej: Supermercado Bravo, Uber...)"
               value={formData.description}
-              onChange={(e) => handleChange('description', e.target.value)}
+              onChange={(e) => handleDescChange(e.target.value)}
               className="form-input"
               required
             />

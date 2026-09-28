@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, Receipt, Wallet, Download } from 'lucide-react';
+import { Plus, Sparkles, Receipt, Wallet, Download, Camera, Send } from 'lucide-react';
 import ExpenseCard from '../components/ExpenseCard';
 import ExpenseForm from '../components/ExpenseForm';
 import IncomeCard from '../components/IncomeCard';
@@ -8,6 +8,9 @@ import IncomeForm from '../components/IncomeForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ImportModal from '../components/ImportModal';
 import ExportModal from '../components/ExportModal';
+import ReceiptScannerModal from '../components/ReceiptScannerModal';
+import TelegramModal from '../components/TelegramModal';
+import NotificationCenter from '../components/NotificationCenter';
 import AdBanner from '../components/AdBanner';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +29,8 @@ export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [showTelegram, setShowTelegram] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingItem, setDeletingItem] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
@@ -137,18 +142,21 @@ export default function ExpensesPage() {
     <div className="page expenses-page">
       {/* Header */}
       <header className="page-header">
-        <div
-          className="user-greeting-wrapper"
-          onClick={() => navigate('/profile')}
-          title="Ver mi perfil"
-        >
-          <div className="header-avatar-mini">
-            {user?.name?.trim()?.charAt(0)?.toUpperCase() || 'U'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            className="user-greeting-wrapper"
+            onClick={() => navigate('/profile')}
+            title="Ver mi perfil"
+          >
+            <div className="header-avatar-mini">
+              {user?.name?.trim()?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <div>
+              <span className="greeting">Hola, {user?.name?.split(' ')[0]} 👋</span>
+              <h1>{mainTab === 'expenses' ? 'Tus gastos' : 'Tus ingresos'}</h1>
+            </div>
           </div>
-          <div>
-            <span className="greeting">Hola, {user?.name?.split(' ')[0]} 👋</span>
-            <h1>{mainTab === 'expenses' ? 'Tus gastos' : 'Tus ingresos'}</h1>
-          </div>
+          <NotificationCenter />
         </div>
         <div className="month-total">
           <span className="month-total-label">
@@ -164,7 +172,27 @@ export default function ExpensesPage() {
               currency: 'DOP',
             })}
           </span>
-          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
+          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px', flexWrap: 'wrap' }}>
+            {mainTab === 'expenses' && (
+              <button
+                type="button"
+                className="btn-header-action"
+                onClick={() => setShowScanner(true)}
+                title="Escanear recibo o factura con cámara (OCR)"
+              >
+                <Camera size={13} />
+                <span>Escanear</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-header-action"
+              onClick={() => setShowTelegram(true)}
+              title="Vincular bot de Telegram para registro rápido"
+            >
+              <Send size={13} />
+              <span>Telegram</span>
+            </button>
             <button
               type="button"
               className="btn-header-action"
@@ -298,6 +326,7 @@ export default function ExpensesPage() {
           expense={editingItem}
           categories={categories}
           onSubmit={handleSubmit}
+          onOpenScanner={() => setShowScanner(true)}
           onClose={() => {
             setShowForm(false);
             setEditingItem(null);
@@ -317,6 +346,20 @@ export default function ExpensesPage() {
           }}
         />
       )}
+
+      {/* Receipt Scanner Modal */}
+      <ReceiptScannerModal
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        categories={categories}
+        onExpenseCreated={fetchData}
+      />
+
+      {/* Telegram Bot Modal */}
+      <TelegramModal
+        isOpen={showTelegram}
+        onClose={() => setShowTelegram(false)}
+      />
 
       {/* Bulk Import Center */}
       <ImportModal

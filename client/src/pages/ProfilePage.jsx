@@ -18,6 +18,8 @@ import {
   X,
   CreditCard,
   Sparkles,
+  Send,
+  Camera,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -25,6 +27,8 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import PasswordStrengthMeter, { evaluatePassword } from '../components/PasswordStrengthMeter';
 import AppleWalletModal from '../components/AppleWalletModal';
 import ImportModal from '../components/ImportModal';
+import TelegramModal from '../components/TelegramModal';
+import ReceiptScannerModal from '../components/ReceiptScannerModal';
 import api from '../services/api';
 import './ProfilePage.css';
 
@@ -39,6 +43,8 @@ export default function ProfilePage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
 
   // Change password form state
   const [pwdData, setPwdData] = useState({
@@ -202,6 +208,30 @@ export default function ProfilePage() {
       <div className="profile-group">
         <h3 className="profile-group-title">Integraciones</h3>
         <div className="profile-group-card">
+          <button
+            className="profile-action-btn"
+            onClick={() => setShowTelegramModal(true)}
+            id="btn-open-telegram"
+          >
+            <div className="action-btn-left">
+              <Send size={18} className="action-icon" style={{ color: '#229ED9' }} />
+              <span>Bot de Telegram (Registro por Chat)</span>
+            </div>
+            <span className="badge-shortcut" style={{ background: 'rgba(34, 158, 217, 0.15)', color: '#229ED9', borderColor: 'rgba(34, 158, 217, 0.3)' }}>
+              Chat Bot
+            </span>
+          </button>
+          <button
+            className="profile-action-btn"
+            onClick={() => setShowScannerModal(true)}
+            id="btn-open-receipt-scanner"
+          >
+            <div className="action-btn-left">
+              <Camera size={18} className="action-icon text-purple" />
+              <span>Escáner de Facturas y Recibos</span>
+            </div>
+            <span className="badge-shortcut">Cámara OCR</span>
+          </button>
           <button
             className="profile-action-btn"
             onClick={() => setShowWalletModal(true)}
@@ -404,6 +434,27 @@ export default function ProfilePage() {
         categories={categories}
         onImportSuccess={() => {
           // Re-fetch user stats on import
+          api.getExpenses().then((expData) => {
+            setStats((prev) => ({
+              ...prev,
+              expensesCount: expData.total || expData.expenses?.length || 0,
+            }));
+          });
+        }}
+      />
+
+      {/* Telegram Bot Modal */}
+      <TelegramModal
+        isOpen={showTelegramModal}
+        onClose={() => setShowTelegramModal(false)}
+      />
+
+      {/* Receipt Scanner Modal */}
+      <ReceiptScannerModal
+        isOpen={showScannerModal}
+        onClose={() => setShowScannerModal(false)}
+        categories={categories}
+        onExpenseCreated={() => {
           api.getExpenses().then((expData) => {
             setStats((prev) => ({
               ...prev,

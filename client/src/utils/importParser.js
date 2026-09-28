@@ -5,33 +5,37 @@
 const KEYWORD_MAP = {
   Comida: [
     'uber eats', 'pedidosya', 'mcdonald', 'burger king', 'kfc', 'wendy',
-    'restaurante', 'restaurant', 'cafe', 'coffee', 'starbucks', 'pizza',
-    'colmado', 'supermercado', 'bravo', 'nacional', 'sirena', 'jumbo',
-    'carrefour', 'bakery', 'panaderia', 'sushi', 'taco', 'bar', 'food',
-    'helad', 'dunkin', 'baskin', 'pasteleria', 'almuerzo', 'cena', 'hot dog', 'vending'
+    'pizzarelli', 'pizza hut', 'dominos', 'restaurante', 'restaurant', 'cafe',
+    'coffee', 'starbucks', 'pizza', 'colmado', 'supermercado', 'bravo', 'nacional',
+    'sirena', 'jumbo', 'plaza lama', 'ole', 'carrefour', 'bakery', 'panaderia',
+    'sushi', 'taco', 'bar', 'food', 'helad', 'dunkin', 'baskin', 'pasteleria',
+    'almuerzo', 'cena', 'desayuno', 'comida', 'hot dog', 'vending'
   ],
   Transporte: [
-    'uber', 'didi', 'cabify', 'taxi', 'metro', 'peaje', 'estacionamiento',
+    'uber', 'didi', 'cabify', 'taxi', 'metro', 'omsa', 'peaje', 'estacionamiento',
     'parqueo', 'gasolina', 'combustible', 'gasolinera', 'texaco', 'shell',
-    'total', 'totalenergies', 'esso', 'sunix', 'isla', 'ecopetroleo', 'cometa', 'delta', 'vuelo'
+    'total', 'totalenergies', 'esso', 'sunix', 'isla', 'ecopetroleo', 'cometa', 'delta', 'vuelo',
+    'aerolinea', 'avianca', 'mecanico', 'gomera'
   ],
   Entretenimiento: [
-    'netflix', 'spotify', 'apple', 'apple.com', 'youtube', 'disney', 'hbo', 'max',
+    'netflix', 'spotify', 'apple', 'apple.com', 'apple.com/bill', 'youtube', 'disney', 'hbo', 'max',
     'prime video', 'twitch', 'cine', 'caribbean cinemas', 'palacio del cine',
-    'steam', 'playstation', 'psn', 'xbox', 'nintendo'
+    'steam', 'playstation', 'psn', 'xbox', 'nintendo', 'gaming', 'concierto',
+    'gym', 'gimnasio', 'smart fit'
   ],
   Salud: [
     'farmacia', 'carol', 'gbc', 'hidalgo', 'los hidalgos', 'laboratorio',
-    'clinica', 'hospital', 'dentista', 'odontolog', 'medico', 'optica'
+    'clinica', 'hospital', 'dentista', 'odontolog', 'medico', 'optica', 'psicolog',
+    'amadita', 'referencia'
   ],
   Vivienda: [
-    'claro', 'altice', 'edenorte', 'edesur', 'edeeste', 'caasd', 'coraasan',
+    'claro', 'altice', 'viva', 'edenorte', 'edesur', 'edeeste', 'caasd', 'coraasan',
     'condominio', 'mantenimiento', 'alquiler', 'renta', 'ikea', 'ferreteria',
-    'electricidad'
+    'bellon', 'amiga', 'electricidad', 'basura', 'americana'
   ],
   Educación: [
     'udemy', 'coursera', 'platzi', 'universidad', 'colegio', 'escuela',
-    'instituto', 'libros', 'libreria', 'kindle'
+    'instituto', 'libros', 'libreria', 'kindle', 'uasd', 'intec', 'pucmm', 'unibe'
   ],
 };
 
@@ -41,19 +45,22 @@ export function autoCategorizeMerchant(merchant = '', categories = []) {
 
   // 1. Direct name match
   for (const cat of categories) {
-    if (clean.includes(cat.name.toLowerCase())) return cat.id;
+    if (clean.includes(cat.name.toLowerCase()) || cat.name.toLowerCase().includes(clean)) return cat.id;
   }
 
   // 2. Keyword group lookup
   for (const [groupName, keywords] of Object.entries(KEYWORD_MAP)) {
     if (keywords.some(k => clean.includes(k))) {
-      const match = categories.find(c => c.name.toLowerCase() === groupName.toLowerCase());
+      const match = categories.find(c => 
+        c.name.toLowerCase().includes(groupName.toLowerCase()) || 
+        groupName.toLowerCase().includes(c.name.toLowerCase())
+      );
       if (match) return match.id;
     }
   }
 
   // 3. Fallback to Otros or first category
-  const otros = categories.find(c => c.name.toLowerCase() === 'otros');
+  const otros = categories.find(c => c.name.toLowerCase().includes('otro'));
   return otros ? otros.id : categories[0].id;
 }
 
@@ -317,3 +324,82 @@ export function parseOCRText(text = '', categories = []) {
 
   return items;
 }
+
+/**
+ * Parses OCR extracted text specifically for a single paper receipt / invoice
+ */
+export function parseSingleReceiptText(text = '', categories = []) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+
+  let merchant = '';
+  let date = new Date().toISOString().split('T')[0];
+  let amount = 0;
+
+  // 1. Identify Merchant from top lines
+  for (let i = 0; i < Math.min(lines.length, 6); i++) {
+    const l = lines[i];
+    if (/rnc|comprobante|factura|ncf|tel|fecha|ticket|caja|cajero|hora|bienvenido|orden|cliente|terminal/i.test(l)) continue;
+    if (l.length >= 3 && !/^\d+$/.test(l)) {
+      merchant = l.replace(/[^\w\s\.\-&]/g, '').trim();
+      break;
+    }
+  }
+  if (!merchant && lines.length > 0) merchant = lines[0].slice(0, 30);
+
+  // 2. Identify Date
+  const dateRegex = /(\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b)/;
+  for (const line of lines) {
+    const dMatch = line.match(dateRegex);
+    if (dMatch) {
+      const parts = dMatch[1].split(/[\/\-\.]/);
+      let parsedDate;
+      if (parts[2]?.length === 4) {
+        parsedDate = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+      } else if (parts[0]?.length === 4) {
+        parsedDate = new Date(`${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`);
+      } else if (parts[2]?.length === 2) {
+        parsedDate = new Date(`20${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+      }
+      if (parsedDate && !isNaN(parsedDate.getTime())) {
+        date = parsedDate.toISOString().split('T')[0];
+        break;
+      }
+    }
+  }
+
+  // 3. Identify Amount (Total)
+  const candidates = [];
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    const isTotalLine = /total|monto a pagar|importe|valor total|neto a pagar/i.test(line) && !/subtotal|itbis|iva|cambio|descuento|efectivo/i.test(line);
+
+    const regex = /(?:RD\$|DOP|\$)?\s*([0-9]{1,3}(?:[,.][0-9]{3})*(?:[.,][0-9]{2}))|(?:RD\$|DOP|\$)\s*([0-9]+(?:\.[0-9]{2})?)/gi;
+    let match;
+    while ((match = regex.exec(line)) !== null) {
+      const raw = (match[1] || match[2] || '').replace(/,/g, '');
+      const val = parseFloat(raw);
+      if (!isNaN(val) && val > 0 && val < 5000000) {
+        candidates.push({ val, isTotalLine, line });
+      }
+    }
+  }
+
+  const explicitTotal = candidates.find(c => c.isTotalLine);
+  if (explicitTotal) {
+    amount = explicitTotal.val;
+  } else if (candidates.length > 0) {
+    const maxCandidate = candidates.reduce((max, c) => c.val > max.val ? c : max, candidates[0]);
+    amount = maxCandidate.val;
+  }
+
+  const categoryId = autoCategorizeMerchant(merchant, categories);
+
+  return {
+    merchant: merchant || 'Recibo escaneado',
+    amount: Math.round(amount * 100) / 100,
+    date,
+    categoryId,
+  };
+}
+

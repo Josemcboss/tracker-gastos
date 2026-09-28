@@ -318,6 +318,17 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // ── Telegram Integration ──
+  getTelegramStatus() {
+    return this.request('/integrations/telegram/status');
+  }
+
+  unlinkTelegram() {
+    return this.request('/integrations/telegram/unlink', {
+      method: 'POST',
+    });
+  }
 }
 
 const api = new ApiService();

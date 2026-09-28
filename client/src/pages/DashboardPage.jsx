@@ -9,6 +9,7 @@ import SubscriptionModal from '../components/SubscriptionModal';
 import SavingsGoalSection from '../components/SavingsGoalSection';
 import SavingsGoalModal from '../components/SavingsGoalModal';
 import ExportModal from '../components/ExportModal';
+import NotificationCenter from '../components/NotificationCenter';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import './DashboardPage.css';
@@ -106,15 +107,18 @@ export default function DashboardPage() {
     <div className="page dashboard-page">
       <header className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1>Resumen Financiero</h1>
-        <button
-          type="button"
-          className="btn-header-action"
-          onClick={() => setShowExportModal(true)}
-          title="Descargar reporte en Excel o PDF"
-        >
-          <Download size={13} />
-          <span>Exportar</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <NotificationCenter />
+          <button
+            type="button"
+            className="btn-header-action"
+            onClick={() => setShowExportModal(true)}
+            title="Descargar reporte en Excel o PDF"
+          >
+            <Download size={13} />
+            <span>Exportar</span>
+          </button>
+        </div>
       </header>
 
       {/* Period selector */}

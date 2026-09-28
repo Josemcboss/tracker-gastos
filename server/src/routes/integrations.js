@@ -182,4 +182,187 @@ router.post('/apple-wallet', async (req, res) => {
   }
 });
 
+// ─── Telegram Bot Helper ───────────────────────────────────────────────
+const sendTelegramMessage = async (chatId, text) => {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) {
+    console.log(`[Telegram Simulation -> ${chatId}]: ${text}`);
+    return;
+  }
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+      }),
+    });
+  } catch (err) {
+    console.error('Telegram Send Error:', err.message);
+  }
+};
+
+// ─── Get Telegram Status & Link Code ───────────────────────────────────
+router.get('/telegram/status', auth, async (req, res) => {
+  try {
+    let user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { telegramChatId: true, telegramLinkToken: true },
+    });
+
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+    if (!user.telegramLinkToken) {
+      const newToken = crypto.randomBytes(6).toString('hex');
+      user = await prisma.user.update({
+        where: { id: req.userId },
+        data: { telegramLinkToken: newToken },
+        select: { telegramChatId: true, telegramLinkToken: true },
+      });
+    }
+
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'TrackerGastosBot';
+
+    res.json({
+      isLinked: !!user.telegramChatId,
+      telegramChatId: user.telegramChatId,
+      linkToken: user.telegramLinkToken,
+      botUsername,
+      botUrl: `https://t.me/${botUsername}?start=${user.telegramLinkToken}`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener estado de Telegram.' });
+  }
+});
+
+// ─── Unlink Telegram ───────────────────────────────────────────────────
+router.post('/telegram/unlink', auth, async (req, res) => {
+  try {
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { telegramChatId: null },
+    });
+    res.json({ message: 'Telegram desvinculado correctamente.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al desvincular Telegram.' });
+  }
+});
+
+// ─── Telegram Webhook Endpoint ─────────────────────────────────────────
+router.post('/telegram/webhook', async (req, res) => {
+  try {
+    const update = req.body;
+    const message = update?.message || update?.edited_message;
+
+    if (!message || !message.text) {
+      return res.status(200).send('OK');
+    }
+
+    const chatId = String(message.chat.id);
+    const text = message.text.trim();
+
+    // 1. Check for /start <token>
+    if (text.startsWith('/start')) {
+      const parts = text.split(' ');
+      const token = parts[1]?.trim();
+
+      if (token) {
+        const user = await prisma.user.findUnique({
+          where: { telegramLinkToken: token },
+        });
+
+        if (user) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { telegramChatId: chatId },
+          });
+
+          await sendTelegramMessage(
+            chatId,
+            `🎉 ¡Hola ${user.name}! Tu cuenta ha sido vinculada exitosamente con tu Tracker de Gastos.\n\nAhora puedes registrar gastos simplemente escribiéndome:\n• "Almuerzo 450"\n• "Uber 320"\n• "Gasolina 2000"\n\n¡Pruébalo enviándome un gasto ahora!`
+          );
+          return res.status(200).send('OK');
+        }
+      }
+
+      await sendTelegramMessage(
+        chatId,
+        `👋 ¡Hola! Para vincular tu cuenta, abre tu Tracker de Gastos, entra a Perfil > "🤖 Bot de Telegram" y toca el enlace de conexión.`
+      );
+      return res.status(200).send('OK');
+    }
+
+    // 2. Identify linked user by chatId
+    const user = await prisma.user.findUnique({
+      where: { telegramChatId: chatId },
+      include: { categories: true },
+    });
+
+    if (!user) {
+      await sendTelegramMessage(
+        chatId,
+        `⚠️ Tu cuenta aún no está vinculada. Abre la aplicación de Tracker de Gastos y toca "Conectar con Telegram" en tu perfil.`
+      );
+      return res.status(200).send('OK');
+    }
+
+    // 3. Parse expense text: e.g. "Almuerzo 450", "Uber 320", "2000 Gasolina"
+    // Extract any number (int or decimal)
+    const amountMatch = text.match(/(?:RD\$|DOP|\$)?\s*([0-9]+(?:[\.,][0-9]{1,2})?)/i);
+
+    if (!amountMatch) {
+      await sendTelegramMessage(
+        chatId,
+        `🤔 No pude detectar un monto en tu mensaje.\n\nEscribe el concepto seguido del monto, por ejemplo:\n• Almuerzo 450\n• Uber 350\n• Supermercado 2500`
+      );
+      return res.status(200).send('OK');
+    }
+
+    const rawNum = amountMatch[1].replace(',', '.');
+    const parsedAmount = parseFloat(rawNum);
+
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      await sendTelegramMessage(chatId, `⚠️ El monto debe ser un número mayor a cero.`);
+      return res.status(200).send('OK');
+    }
+
+    // Remove the number and currency keywords from text to get the description
+    let description = text
+      .replace(amountMatch[0], '')
+      .replace(/\b(rd\$|dop|pesos|dolares|usd|\$)\b/gi, '')
+      .trim();
+
+    if (!description) description = 'Gasto por Telegram';
+
+    // Auto-categorize
+    const targetCategory = findBestCategory(description, user.categories);
+
+    // Save expense to DB
+    const expense = await prisma.expense.create({
+      data: {
+        amount: Math.round(parsedAmount * 100) / 100,
+        description,
+        date: new Date(),
+        paymentMethod: 'Telegram Bot',
+        currency: 'DOP',
+        exchangeRate: 1,
+        userId: user.id,
+        categoryId: targetCategory.id,
+      },
+    });
+
+    await sendTelegramMessage(
+      chatId,
+      `✅ ¡Gasto registrado exitosamente!\n\n💵 Monto: RD$ ${expense.amount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}\n📌 Concepto: ${expense.description}\n🏷️ Categoría: ${targetCategory.name}\n📅 Fecha: ${new Date().toLocaleDateString('es-DO')}`
+    );
+
+    return res.status(200).send('OK');
+  } catch (error) {
+    console.error('Telegram Webhook Error:', error);
+    return res.status(500).send('Error');
+  }
+});
+
 module.exports = router;
+

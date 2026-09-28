@@ -6,33 +6,37 @@
 const KEYWORD_MAP = {
   Comida: [
     'uber eats', 'pedidosya', 'mcdonald', 'burger king', 'kfc', 'wendy',
-    'restaurante', 'restaurant', 'cafe', 'coffee', 'starbucks', 'pizza',
-    'colmado', 'supermercado', 'bravo', 'nacional', 'sirena', 'jumbo',
-    'carrefour', 'bakery', 'panaderia', 'sushi', 'taco', 'bar', 'food',
-    'helad', 'dunkin', 'baskin', 'pasteleria', 'almuerzo', 'cena'
+    'pizzarelli', 'pizza hut', 'dominos', 'restaurante', 'restaurant', 'cafe',
+    'coffee', 'starbucks', 'pizza', 'colmado', 'supermercado', 'bravo', 'nacional',
+    'sirena', 'jumbo', 'plaza lama', 'ole', 'carrefour', 'bakery', 'panaderia',
+    'sushi', 'taco', 'bar', 'food', 'helad', 'dunkin', 'baskin', 'pasteleria',
+    'almuerzo', 'cena', 'desayuno', 'comida'
   ],
   Transporte: [
-    'uber', 'didi', 'cabify', 'taxi', 'metro', 'peaje', 'estacionamiento',
+    'uber', 'didi', 'cabify', 'taxi', 'metro', 'omsa', 'peaje', 'estacionamiento',
     'parqueo', 'gasolina', 'combustible', 'gasolinera', 'texaco', 'shell',
-    'total', 'esso', 'sunix', 'isla', 'delta', 'vuelo', 'aerolinea', 'avianca'
+    'total', 'totalenergies', 'esso', 'sunix', 'isla', 'ecopetroleo', 'delta',
+    'vuelo', 'aerolinea', 'avianca', 'mecanico', 'gomera'
   ],
   Entretenimiento: [
-    'netflix', 'spotify', 'apple.com/bill', 'youtube', 'disney', 'hbo', 'max',
+    'netflix', 'spotify', 'apple.com/bill', 'apple', 'youtube', 'disney', 'hbo', 'max',
     'prime video', 'twitch', 'cine', 'caribbean cinemas', 'palacio del cine',
-    'steam', 'playstation', 'psn', 'xbox', 'nintendo', 'gaming', 'concierto'
+    'steam', 'playstation', 'psn', 'xbox', 'nintendo', 'gaming', 'concierto',
+    'gym', 'gimnasio', 'smart fit'
   ],
   Salud: [
     'farmacia', 'carol', 'gbc', 'hidalgo', 'los hidalgos', 'laboratorio',
-    'clinica', 'hospital', 'dentista', 'odontolog', 'medico', 'optica', 'psicolog'
+    'clinica', 'hospital', 'dentista', 'odontolog', 'medico', 'optica', 'psicolog',
+    'amadita', 'referencia'
   ],
   Vivienda: [
-    'claro', 'altice', 'edenorte', 'edesur', 'edeeste', 'caasd', 'coraasan',
+    'claro', 'altice', 'viva', 'edenorte', 'edesur', 'edeeste', 'caasd', 'coraasan',
     'condominio', 'mantenimiento', 'alquiler', 'renta', 'ikea', 'ferreteria',
-    'bellon', 'amiga', 'electricidad', 'basura'
+    'bellon', 'amiga', 'electricidad', 'basura', 'americana'
   ],
   Educación: [
     'udemy', 'coursera', 'platzi', 'universidad', 'colegio', 'escuela',
-    'instituto', 'libros', 'libreria', 'kindle'
+    'instituto', 'libros', 'libreria', 'kindle', 'uasd', 'intec', 'pucmm', 'unibe'
   ],
 };
 
