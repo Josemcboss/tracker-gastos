@@ -114,8 +114,8 @@ export default function SavingsGoalModal({
                 <input
                   id="contrib-amount"
                   type="number"
-                  step="10"
-                  min="1"
+                  step="any"
+                  min="0"
                   placeholder="0.00"
                   value={contributionAmount}
                   onChange={(e) => setContributionAmount(e.target.value)}
@@ -124,6 +124,30 @@ export default function SavingsGoalModal({
                   autoFocus
                   inputMode="decimal"
                 />
+              </div>
+              <div className="quick-amount-presets">
+                {[500, 1000, 2000, 5000].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    className="quick-preset-btn"
+                    onClick={() => {
+                      const curr = parseFloat(contributionAmount) || 0;
+                      setContributionAmount(String(curr + val));
+                    }}
+                  >
+                    +{val.toLocaleString('es-DO')}
+                  </button>
+                ))}
+                {contributionAmount && (
+                  <button
+                    type="button"
+                    className="quick-preset-btn reset"
+                    onClick={() => setContributionAmount('')}
+                  >
+                    Limpiar
+                  </button>
+                )}
               </div>
             </div>
 
@@ -159,15 +183,39 @@ export default function SavingsGoalModal({
                 <input
                   id="goal-target"
                   type="number"
-                  step="100"
-                  min="1"
+                  step="any"
+                  min="0"
                   placeholder="Ej: 50000"
                   value={formData.targetAmount}
                   onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
                   className="form-input"
                   required
-                  inputMode="numeric"
+                  inputMode="decimal"
                 />
+              </div>
+              <div className="quick-amount-presets">
+                {[5000, 10000, 25000, 50000].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    className="quick-preset-btn"
+                    onClick={() => {
+                      const curr = parseFloat(formData.targetAmount) || 0;
+                      setFormData({ ...formData, targetAmount: String(curr + val) });
+                    }}
+                  >
+                    +{val.toLocaleString('es-DO')}
+                  </button>
+                ))}
+                {formData.targetAmount && (
+                  <button
+                    type="button"
+                    className="quick-preset-btn reset"
+                    onClick={() => setFormData({ ...formData, targetAmount: '' })}
+                  >
+                    Limpiar
+                  </button>
+                )}
               </div>
             </div>
 
@@ -176,7 +224,7 @@ export default function SavingsGoalModal({
               <input
                 id="goal-initial"
                 type="number"
-                step="10"
+                step="any"
                 min="0"
                 placeholder="0.00"
                 value={formData.currentAmount}

@@ -90,8 +90,8 @@ export default function SubscriptionModal({ isOpen, onClose, categories = [], on
               <input
                 id="sub-amount"
                 type="number"
-                step="0.01"
-                min="1"
+                step="any"
+                min="0"
                 placeholder="0.00"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -99,6 +99,30 @@ export default function SubscriptionModal({ isOpen, onClose, categories = [], on
                 required
                 inputMode="decimal"
               />
+            </div>
+            <div className="quick-amount-presets">
+              {[500, 1000, 2000, 3000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  className="quick-preset-btn"
+                  onClick={() => {
+                    const curr = parseFloat(formData.amount) || 0;
+                    setFormData({ ...formData, amount: String(curr + val) });
+                  }}
+                >
+                  +{val.toLocaleString('es-DO')}
+                </button>
+              ))}
+              {formData.amount && (
+                <button
+                  type="button"
+                  className="quick-preset-btn reset"
+                  onClick={() => setFormData({ ...formData, amount: '' })}
+                >
+                  Limpiar
+                </button>
+              )}
             </div>
           </div>
 

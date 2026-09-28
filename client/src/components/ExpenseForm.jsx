@@ -99,7 +99,7 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
               <input
                 id="expense-amount"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 placeholder="0.00"
                 value={formData.amount}
@@ -109,6 +109,31 @@ export default function ExpenseForm({ expense, categories, onSubmit, onClose }) 
                 autoFocus
                 inputMode="decimal"
               />
+            </div>
+
+            <div className="quick-amount-presets">
+              {(currency === 'USD' ? [5, 10, 25, 50] : [100, 500, 1000, 2000]).map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  className="quick-preset-btn"
+                  onClick={() => {
+                    const curr = parseFloat(formData.amount) || 0;
+                    handleChange('amount', String(curr + val));
+                  }}
+                >
+                  +{currency === 'USD' ? `$${val}` : val.toLocaleString('es-DO')}
+                </button>
+              ))}
+              {formData.amount && (
+                <button
+                  type="button"
+                  className="quick-preset-btn reset"
+                  onClick={() => handleChange('amount', '')}
+                >
+                  Limpiar
+                </button>
+              )}
             </div>
 
             {currency === 'USD' && (

@@ -125,15 +125,39 @@ export default function BudgetModal({ isOpen, onClose, categories = [], onBudget
             <input
               id="budget-amount"
               type="number"
-              step="100"
-              min="1"
+              step="any"
+              min="0"
               placeholder="Ej: 15000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="form-input"
               required
-              inputMode="numeric"
+              inputMode="decimal"
             />
+            <div className="quick-amount-presets">
+              {[500, 1000, 2500, 5000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  className="quick-preset-btn"
+                  onClick={() => {
+                    const curr = parseFloat(amount) || 0;
+                    setAmount(String(curr + val));
+                  }}
+                >
+                  +{val.toLocaleString('es-DO')}
+                </button>
+              ))}
+              {amount && (
+                <button
+                  type="button"
+                  className="quick-preset-btn reset"
+                  onClick={() => setAmount('')}
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
           </div>
 
           <button type="submit" className="form-submit" disabled={saving}>

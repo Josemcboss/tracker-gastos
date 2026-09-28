@@ -325,7 +325,8 @@ export default function ImportModal({ isOpen, onClose, categories = [], onImport
                         <span>RD$</span>
                         <input
                           type="number"
-                          step="0.01"
+                          step="any"
+                          min="0"
                           className="preview-input amount"
                           value={item.amount}
                           onChange={(e) => updateItem(item.id, 'amount', e.target.value)}

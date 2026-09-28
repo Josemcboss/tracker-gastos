@@ -59,7 +59,7 @@ export default function IncomeForm({ income, categories = [], onSubmit, onClose 
               <input
                 id="income-amount"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 placeholder="0.00"
                 value={formData.amount}
@@ -69,6 +69,30 @@ export default function IncomeForm({ income, categories = [], onSubmit, onClose 
                 autoFocus={!isEditing}
                 inputMode="decimal"
               />
+            </div>
+            <div className="quick-amount-presets">
+              {[500, 1000, 5000, 10000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  className="quick-preset-btn"
+                  onClick={() => {
+                    const curr = parseFloat(formData.amount) || 0;
+                    handleChange('amount', String(curr + val));
+                  }}
+                >
+                  +{val.toLocaleString('es-DO')}
+                </button>
+              ))}
+              {formData.amount && (
+                <button
+                  type="button"
+                  className="quick-preset-btn reset"
+                  onClick={() => handleChange('amount', '')}
+                >
+                  Limpiar
+                </button>
+              )}
             </div>
           </div>
 
