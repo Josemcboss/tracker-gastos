@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { TrendingDown, TrendingUp, Wallet, Receipt, ArrowUpRight, ArrowDownRight, Scale } from 'lucide-react';
 import DonutChart from '../components/DonutChart';
+import AdBanner from '../components/AdBanner';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import './DashboardPage.css';
@@ -260,6 +261,9 @@ export default function DashboardPage() {
             </div>
           </section>
         )}
+
+        {/* Google AdSense Banner */}
+        <AdBanner className="dashboard-ad-banner" />
       </div>
     </div>
   );

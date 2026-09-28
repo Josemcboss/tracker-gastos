@@ -7,6 +7,7 @@ import IncomeCard from '../components/IncomeCard';
 import IncomeForm from '../components/IncomeForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ImportModal from '../components/ImportModal';
+import AdBanner from '../components/AdBanner';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -262,6 +263,9 @@ export default function ExpensesPage() {
             </div>
           ))
         )}
+
+        {/* Google AdSense Banner */}
+        <AdBanner className="expenses-ad-banner" />
       </div>
 
       {/* Floating Add Button */}
