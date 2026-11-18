@@ -67,6 +67,8 @@ function cleanMerchantName(merchant) {
   m = m.replace(/<[^>]*>?/gm, '');
   // Remove starting/trailing prepositions or noise
   m = m.replace(/^(en\s+|el\s+|la\s+|los\s+|las\s+|comercio\s*:\s*)/i, '');
+  // Strip trailing metadata (Fecha de transaccion, Numero de aprobacion, etc.)
+  m = m.replace(/\s*(?:Fecha\s*de\s*transacci[oó]n|N[uú]mero\s*de\s*aprobaci[oó]n|Recibido\s*por).*$/i, '');
   m = m.replace(/\s+(el|la|por|con|para|a\s+las|su|tu)$/i, '');
   m = m.replace(/[.,:;*#-]+$/, '').trim();
   return m.length >= 2 ? m : null;
