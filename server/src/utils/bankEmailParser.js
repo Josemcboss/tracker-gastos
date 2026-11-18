@@ -7,7 +7,7 @@
  */
 
 /**
- * Standardizes raw amount strings like "1,500.50", "2.350,00", "50.00" into a float.
+ * Standardizes raw amount strings like "1,500.50", "2.350,00", "50.00", "100.00" into a float.
  */
 function cleanNumericAmount(rawStr) {
   if (!rawStr) return null;
@@ -63,8 +63,10 @@ function parseDateString(rawDate) {
 function cleanMerchantName(merchant) {
   if (!merchant) return null;
   let m = merchant.trim().replace(/\s+/g, ' ');
+  // Remove HTML residue if any
+  m = m.replace(/<[^>]*>?/gm, '');
   // Remove starting/trailing prepositions or noise
-  m = m.replace(/^(en\s+|el\s+|la\s+|los\s+|las\s+)/i, '');
+  m = m.replace(/^(en\s+|el\s+|la\s+|los\s+|las\s+|comercio\s*:\s*)/i, '');
   m = m.replace(/\s+(el|la|por|con|para|a\s+las|su|tu)$/i, '');
   m = m.replace(/[.,:;*#-]+$/, '').trim();
   return m.length >= 2 ? m : null;
@@ -72,28 +74,36 @@ function cleanMerchantName(merchant) {
 
 /**
  * Parses email subject and body strictly for bank transaction notifications.
- * Automatically discards promotions, marketing, and non-expense emails.
+ * Discards promotions, marketing, and non-expense emails.
  */
 function parseBankEmail({ subject = '', bodyText = '', bodyHtml = '', from = '', date = null }) {
   const cleanFrom = String(from).toLowerCase();
-  const rawText = `${subject}\n${bodyText}\n${bodyHtml ? bodyHtml.replace(/<[^>]*>?/gm, ' ') : ''}`.replace(/\r\n/g, '\n');
+  const fullRaw = `${subject}\n${bodyText}\n${bodyHtml ? bodyHtml.replace(/<[^>]*>?/gm, ' ') : ''}`;
+  const normalized = fullRaw.replace(/\r\n/g, '\n').replace(/\s+/g, ' ');
 
   // 1. Strict Promotion / Marketing Filter
-  const isPromo = /(?:promoci[oó]n|cup[oó]n|c[oó]digo promocional|descuento exclusivo|ahorra en tu pr[oó]ximo|viaja con descuento|aprovecha el descuento|gana hasta|invita a tus amigos)/i.test(rawText);
+  const isPromo = /(?:promoci[oó]n|cup[oó]n|c[oó]digo promocional|descuento exclusivo|ahorra en tu pr[oó]ximo|viaja con descuento|aprovecha el descuento|gana hasta|invita a tus amigos)/i.test(normalized);
   if (isPromo) {
     return null; // Explicitly discard promotions
   }
 
   // ─── BANRESERVAS PARSER ──────────────────────────────────────────────
-  if (cleanFrom.includes('banreservas') || /banreservas/i.test(rawText)) {
-    // Verification: Must be a consumption notification
-    const isConsumption = /notificaci[oó]n de consumo|presenta un consumo/i.test(rawText);
-    const isApproved = /APROBADO|Aprobada/i.test(rawText);
+  if (cleanFrom.includes('banreservas') || /banreservas/i.test(normalized)) {
+    const isApproved = /APROBADO|Aprobada/i.test(normalized);
+    const isConsumption = /notificaci[oó]n de consumo|presenta un consumo/i.test(normalized);
 
-    if (isConsumption && isApproved) {
-      const montoMatch = rawText.match(/Monto:\s*(?:DOP|RD\$|\$)?\s*([0-9.,]+)/i);
-      const comercioMatch = rawText.match(/Comercio:\s*([^\n\r]+)/i);
-      const fechaMatch = rawText.match(/Fecha(?: de transacci[oó]n)?:\s*([0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{2,4})/i);
+    if (isApproved || isConsumption) {
+      // Find Monto
+      const montoMatch = normalized.match(/Monto\s*:\s*(?:DOP|RD\$|\$)?\s*([0-9.,]+)/i) ||
+                         normalized.match(/(?:DOP|RD\$|\$)\s*([0-9.,]+)/i);
+
+      // Find Comercio
+      const comercioMatch = normalized.match(/Comercio\s*:\s*([A-Za-z0-9\s\.\-_&'#]{2,50}?)(?:\s+Fecha|\s+N[uú]mero|\s+Estado|\s*[\n\r]|$)/i) ||
+                            normalized.match(/Comercio\s*:\s*([^\n\r]+)/i);
+
+      // Find Fecha
+      const fechaMatch = normalized.match(/Fecha(?:\s+de\s+transacci[oó]n)?\s*:\s*([0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{2,4})/i) ||
+                         normalized.match(/([0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{2,4})/i);
 
       if (montoMatch && montoMatch[1]) {
         const amount = cleanNumericAmount(montoMatch[1]);
@@ -115,13 +125,42 @@ function parseBankEmail({ subject = '', bodyText = '', bodyHtml = '', from = '',
   }
 
   // ─── BANCO POPULAR DOMINICANO PARSER ────────────────────────────────
-  if (cleanFrom.includes('popularenlinea') || cleanFrom.includes('bancopopular') || /banco popular/i.test(rawText)) {
-    // Verification: Must have approved status
-    const isApproved = /Aprobada|Aprobado/i.test(rawText);
+  if (cleanFrom.includes('popularenlinea') || cleanFrom.includes('bancopopular') || /banco popular/i.test(normalized)) {
+    const isApproved = /Aprobada|Aprobado/i.test(normalized);
 
     if (isApproved) {
-      // Pattern 1: Table format (Monto Moneda Fecha Comercio Estatus)
-      const tableMatch = rawText.match(/(?:RD\$|DOP|US\$|USD)\s*([0-9.,]+)\s+(?:Peso dominicano|DOP|USD|Dólar[a-z]*)?[\s\n\r]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})[\s\n\r]+(.+?)[\s\n\r]+(?:Aprobada|Aprobado)/i);
+      // 1. Table format in HTML (if bodyHtml is provided)
+      if (bodyHtml) {
+        const rows = bodyHtml.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi);
+        if (rows && rows.length >= 2) {
+          for (const row of rows) {
+            if (/Aprobada|Aprobado/i.test(row)) {
+              const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => m[1].replace(/<[^>]*>?/gm, '').trim());
+              // Cells expected: [Monto, Moneda, Fecha, Comercio, Estatus]
+              if (cells.length >= 4) {
+                const amount = cleanNumericAmount(cells[0].replace(/[^0-9.,]/g, ''));
+                const expenseDate = parseDateString(cells[2]);
+                const merchant = cleanMerchantName(cells[3]);
+
+                if (amount && amount > 0) {
+                  return {
+                    amount,
+                    currency: /USD|D[oó]lar/i.test(cells[1]) ? 'USD' : 'DOP',
+                    merchant: merchant || 'Consumo Banco Popular',
+                    date: expenseDate,
+                    paymentMethod: 'Banco Popular',
+                    parsedBy: 'popular-html-table',
+                  };
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Table format in Plain Text / Normalized Text
+      // e.g.: RD$100.00 Peso dominicano 16/11/2026 RUTH SNACK VM Aprobada
+      const tableMatch = normalized.match(/(?:RD\$|DOP|US\$|USD)\s*([0-9.,]+)\s+(?:Peso dominicano|DOP|USD|Dólar[a-z]*)?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})\s+(.+?)\s+(?:Aprobada|Aprobado)/i);
 
       if (tableMatch && tableMatch[1]) {
         const amount = cleanNumericAmount(tableMatch[1]);
@@ -135,26 +174,29 @@ function parseBankEmail({ subject = '', bodyText = '', bodyHtml = '', from = '',
             merchant: merchant || 'Consumo Banco Popular',
             date: expenseDate,
             paymentMethod: 'Banco Popular',
-            parsedBy: 'popular-table-template',
+            parsedBy: 'popular-text-table',
           };
         }
       }
 
-      // Pattern 2: Narrative text (Ha realizado una compra con su tarjeta... por un monto de RD$ ... en COMERCIO)
-      const narrativeAmount = rawText.match(/(?:monto(?: de)?|valor(?: de)?|por un monto de)\s*(?:de\s+)?(?:RD\$|DOP|US\$|USD|\$)?\s*([0-9.,]+)/i);
-      const narrativeMerchant = rawText.match(/\ben\s+([A-Za-z][A-Za-z0-9\s\.\-_&'#]{2,40}?)(?:\s+(?:el\s+\d|con\s+(?:su|tu)|por\s+un|a\s+las)|\s*[.,:\n<]|$)/i);
+      // 3. Fallback: Search individual fields
+      const montoMatch = normalized.match(/(?:RD\$|DOP|US\$|USD)\s*([0-9.,]+)/i);
+      const merchantMatch = normalized.match(/(?:Fecha\s+Comercio\s+Estatus|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})\s+(.+?)\s+Aprobada/i);
+      const fechaMatch = normalized.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/);
 
-      if (narrativeAmount && narrativeAmount[1]) {
-        const amount = cleanNumericAmount(narrativeAmount[1]);
-        const merchant = narrativeMerchant ? cleanMerchantName(narrativeMerchant[1]) : 'Consumo Banco Popular';
+      if (montoMatch && montoMatch[1]) {
+        const amount = cleanNumericAmount(montoMatch[1]);
+        const merchant = merchantMatch ? cleanMerchantName(merchantMatch[1]) : 'Consumo Banco Popular';
+        const expenseDate = fechaMatch ? parseDateString(fechaMatch[1]) : (date ? new Date(date) : new Date());
+
         if (amount && amount > 0) {
           return {
             amount,
-            currency: /US\$|USD|d[oó]lares/i.test(rawText) ? 'USD' : 'DOP',
+            currency: /USD|D[oó]lar/i.test(normalized) ? 'USD' : 'DOP',
             merchant: merchant || 'Consumo Banco Popular',
-            date: date ? new Date(date) : new Date(),
+            date: expenseDate,
             paymentMethod: 'Banco Popular',
-            parsedBy: 'popular-narrative-template',
+            parsedBy: 'popular-flexible',
           };
         }
       }
@@ -170,19 +212,19 @@ function parseBankEmail({ subject = '', bodyText = '', bodyHtml = '', from = '',
   ];
 
   for (const b of otherBanks) {
-    if (b.pattern.test(cleanFrom) || b.pattern.test(rawText)) {
-      const isApproved = /aprobad[oa]|realizada|consumo exitoso|d[eé]bito aplicado/i.test(rawText);
+    if (b.pattern.test(cleanFrom) || b.pattern.test(normalized)) {
+      const isApproved = /aprobad[oa]|realizada|consumo exitoso|d[eé]bito aplicado/i.test(normalized);
       if (!isApproved) continue;
 
-      const amtMatch = rawText.match(/(?:monto(?: de)?|valor(?: de)?|por|compra aprobada por)\s*:?\s*(?:RD\$|DOP|US\$|USD|\$)?\s*([0-9]{1,3}(?:[,\.][0-9]{3})*(?:[,\.][0-9]{1,2})|[0-9]+(?:[,\.][0-9]{1,2})?)/i);
-      const merchMatch = rawText.match(/\ben\s+([A-Za-z][A-Za-z0-9\s\.\-_&'#]{2,40}?)(?:\s+(?:el\s+\d|con\s+(?:su|tu)|por\s+un)|\s*[.,:\n<]|$)/i);
+      const amtMatch = normalized.match(/(?:monto|valor|por|compra aprobada por)\s*:?\s*(?:RD\$|DOP|US\$|USD|\$)?\s*([0-9]{1,3}(?:[,\.][0-9]{3})*(?:[,\.][0-9]{1,2})|[0-9]+(?:[,\.][0-9]{1,2})?)/i);
+      const merchMatch = normalized.match(/\ben\s+([A-Za-z][A-Za-z0-9\s\.\-_&'#]{2,40}?)(?:\s+(?:el\s+\d|con\s+(?:su|tu)|por\s+un)|\s*[.,:\n<]|$)/i);
 
       if (amtMatch && amtMatch[1]) {
         const amount = cleanNumericAmount(amtMatch[1]);
         if (amount && amount > 0) {
           return {
             amount,
-            currency: /US\$|USD/i.test(rawText) ? 'USD' : 'DOP',
+            currency: /US\$|USD/i.test(normalized) ? 'USD' : 'DOP',
             merchant: merchMatch ? cleanMerchantName(merchMatch[1]) : `Consumo ${b.name}`,
             date: date ? new Date(date) : new Date(),
             paymentMethod: b.name,
@@ -193,7 +235,6 @@ function parseBankEmail({ subject = '', bodyText = '', bodyHtml = '', from = '',
     }
   }
 
-  // If none of the approved bank transaction formats matched, reject.
   return null;
 }
 
