@@ -630,6 +630,18 @@ router.get('/widget-summary', async (req, res) => {
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const monthLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
+    // Plain text mode for ultra-simple Apple Shortcuts notifications
+    if (req.query.format === 'text' || req.query.plain === 'true') {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      const lastText = latest ? `${latest.description} (RD$ ${latest.amount.toLocaleString('es-DO', { minimumFractionDigits: 2 })})` : 'Ninguno';
+      const remText = budgetRemaining !== null ? `RD$ ${budgetRemaining.toLocaleString('es-DO', { minimumFractionDigits: 2 })} libre` : 'Sin límite fijado';
+      const textOutput =
+        `💳 Gastado este mes: RD$ ${totalSpent.toLocaleString('es-DO', { minimumFractionDigits: 2 })}\n` +
+        `🎯 Presupuesto: ${remText}\n` +
+        `🛒 Último gasto: ${lastText}`;
+      return res.send(textOutput);
+    }
+
     res.json({
       status: 'ok',
       userName: user.name,
