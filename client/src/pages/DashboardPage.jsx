@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { TrendingDown, TrendingUp, Wallet, Receipt, ArrowUpRight, ArrowDownRight, Scale, Download } from 'lucide-react';
+import { TrendingDown, TrendingUp, Wallet, Receipt, ArrowUpRight, ArrowDownRight, Scale, Download, Sparkles, Lightbulb, RefreshCw } from 'lucide-react';
 import DonutChart from '../components/DonutChart';
 import AdBanner from '../components/AdBanner';
 import BudgetSection from '../components/BudgetSection';
@@ -38,6 +38,25 @@ export default function DashboardPage() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [contributeGoal, setContributeGoal] = useState(null);
   const [goalRefreshKey, setGoalRefreshKey] = useState(0);
+
+  const [aiInsights, setAiInsights] = useState(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+  const [showAiCard, setShowAiCard] = useState(false);
+
+  const fetchAiInsights = async () => {
+    setLoadingAi(true);
+    setShowAiCard(true);
+    try {
+      const res = await api.getAiInsights();
+      if (res?.data) {
+        setAiInsights(res.data);
+      }
+    } catch (err) {
+      showToast('No se pudo generar el análisis de IA en este momento', 'error');
+    } finally {
+      setLoadingAi(false);
+    }
+  };
 
   useEffect(() => {
     const fetchSummaries = async () => {
@@ -176,6 +195,54 @@ export default function DashboardPage() {
             </span>
           </div>
         </div>
+
+        {/* AI Financial Advisor */}
+        {!showAiCard ? (
+          <div className="ai-advisor-trigger" onClick={fetchAiInsights}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={18} color="#A78BFA" />
+              <span>Diagnóstico Financiero con IA</span>
+            </div>
+            <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Generar análisis ✨</span>
+          </div>
+        ) : (
+          <div className="ai-advisor-card">
+            <div className="ai-advisor-header">
+              <div className="ai-advisor-title">
+                <Sparkles size={18} color="#C4B5FD" />
+                <span>Asesor Financiero IA</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {aiInsights?.healthScore && (
+                  <span className={`ai-score-badge ${aiInsights.status || 'estable'}`}>
+                    Salud: {aiInsights.healthScore}/100
+                  </span>
+                )}
+                <button className="ai-btn-refresh" onClick={fetchAiInsights} title="Actualizar">
+                  <RefreshCw size={14} className={loadingAi ? 'spin' : ''} />
+                </button>
+              </div>
+            </div>
+
+            {loadingAi ? (
+              <div style={{ padding: '16px 0', textAlign: 'center', color: '#a78bfa', fontSize: '0.85rem' }}>
+                <Sparkles size={20} className="spin" style={{ margin: '0 auto 8px' }} />
+                <span>Analizando tus finanzas con Inteligencia Artificial...</span>
+              </div>
+            ) : aiInsights ? (
+              <>
+                <div className="ai-headline">{aiInsights.headline}</div>
+                <div className="ai-summary">{aiInsights.summary}</div>
+                {aiInsights.savingsAdvice && (
+                  <div className="ai-advice-box">
+                    <Lightbulb size={16} color="#F59E0B" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <span>{aiInsights.savingsAdvice}</span>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        )}
 
         {/* Chart View Switcher: Gastos vs Ingresos */}
         <div className="category-type-tabs" style={{ margin: '18px 0 14px' }}>

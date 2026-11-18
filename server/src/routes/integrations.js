@@ -8,6 +8,7 @@ const { sanitizeString } = require('../middleware/validate');
 const { findBestCategory } = require('../utils/autoCategorize');
 const { parseBankEmail } = require('../utils/bankEmailParser');
 const { parseWithGemini } = require('../utils/geminiParser');
+const { getUsdToDopRate } = require('../utils/exchangeRate');
 
 const SECURE_FALLBACK = 'tracker_gastos_jwt_secret_key_2026_prod_secure_fallback_v1';
 const JWT_SECRET = process.env.JWT_SECRET || SECURE_FALLBACK;
@@ -463,15 +464,41 @@ router.post('/email-expense', async (req, res) => {
       return res.status(400).json({ error: 'No hay categorías disponibles para registrar el gasto.' });
     }
 
+    // ─── Currency & Exchange Rate Handling (DOP / USD) ──────────────────
+    let originalCurrency = parsed.currency || 'DOP';
+    let exchangeRate = 1.0;
+    let finalAmount = parsed.amount;
+
+    if (originalCurrency === 'USD') {
+      exchangeRate = await getUsdToDopRate();
+      finalAmount = Math.round((parsed.amount * exchangeRate) * 100) / 100;
+    }
+
+    // ─── Duplicate Charge Detector (within 15 minutes) ──────────────────
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const existingRecent = await prisma.expense.findFirst({
+      where: {
+        userId: user.id,
+        amount: finalAmount,
+        createdAt: { gte: fifteenMinutesAgo },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const isDuplicate = !!existingRecent;
+    const finalDescription = isDuplicate
+      ? `⚠️ [POSIBLE DUPLICADO] ${sanitizeString(parsed.merchant).slice(0, 120)}`
+      : sanitizeString(parsed.merchant).slice(0, 150);
+
     // Insert expense
     const expense = await prisma.expense.create({
       data: {
-        amount: parsed.amount,
-        description: sanitizeString(parsed.merchant).slice(0, 150),
+        amount: finalAmount,
+        description: finalDescription,
         date: parsed.date || new Date(),
         paymentMethod: sanitizeString(parsed.paymentMethod || 'Correo Electrónico').slice(0, 50),
-        currency: parsed.currency || 'DOP',
-        exchangeRate: 1.0,
+        currency: originalCurrency,
+        exchangeRate,
         userId: user.id,
         categoryId: targetCategory.id,
       },
@@ -484,35 +511,148 @@ router.post('/email-expense', async (req, res) => {
       userId: user.id,
       amount: expense.amount,
       category: targetCategory.name,
+      isDuplicate,
       parsedBy: parsed.parsedBy,
     });
 
-    // Send Telegram Notification if configured
+    // Send Telegram Notification (Normal or Duplicate Alert)
     if (user.telegramChatId) {
-      const cur = expense.currency === 'USD' ? 'US$' : 'RD$';
-      const formattedAmount = `${cur} ${expense.amount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`;
-      const parsedBadge = parsed.parsedBy === 'gemini' ? '🤖 Gemini IA' : (parsed.parsedBy === 'direct' ? '⚡ Directo' : '🏦 Parser Bancario');
+      if (isDuplicate) {
+        const dupMessage = `🚨 <b>¡ALERTA DE POSIBLE CARGO DUPLICADO!</b>\n\n` +
+          `Se ha detectado un segundo cobro idéntico de <b>RD$ ${expense.amount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</b> en <b>${parsed.merchant}</b> con menos de 15 minutos de diferencia.\n\n` +
+          `⚠️ <i>Por favor verifica tu banca en línea o llama a tu banco si no realizaste esta compra dos veces.</i>`;
+        await sendTelegramMessage(user.telegramChatId, dupMessage);
+      } else {
+        const cur = originalCurrency === 'USD' ? 'US$' : 'RD$';
+        const formattedAmount = `${cur} ${parsed.amount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`;
+        const conversionNote = originalCurrency === 'USD' ? ` (Equiv: RD$ ${finalAmount.toLocaleString('es-DO', { minimumFractionDigits: 2 })} @ ${exchangeRate})` : '';
+        const parsedBadge = parsed.parsedBy === 'gemini' ? '🤖 Gemini IA' : (parsed.parsedBy === 'direct' ? '⚡ Directo' : '🏦 Parser Bancario');
 
-      const message = `📧 <b>Nuevo Gasto Registrado desde Gmail</b>\n\n` +
-        `💵 <b>Monto:</b> ${formattedAmount}\n` +
-        `🏪 <b>Comercio:</b> ${expense.description}\n` +
-        `📂 <b>Categoría:</b> ${targetCategory.name}\n` +
-        `💳 <b>Origen:</b> ${expense.paymentMethod}\n` +
-        `📅 <b>Fecha:</b> ${new Date(expense.date).toLocaleDateString('es-DO')}\n\n` +
-        `<i>Modo: ${parsedBadge}</i>`;
+        const message = `📧 <b>Nuevo Gasto Registrado desde Gmail</b>\n\n` +
+          `💵 <b>Monto:</b> ${formattedAmount}${conversionNote}\n` +
+          `🏪 <b>Comercio:</b> ${parsed.merchant}\n` +
+          `📂 <b>Categoría:</b> ${targetCategory.name}\n` +
+          `💳 <b>Origen:</b> ${expense.paymentMethod}\n` +
+          `📅 <b>Fecha:</b> ${new Date(expense.date).toLocaleDateString('es-DO')}\n\n` +
+          `<i>Modo: ${parsedBadge}</i>`;
 
-      await sendTelegramMessage(user.telegramChatId, message);
+        await sendTelegramMessage(user.telegramChatId, message);
+      }
     }
 
     res.status(201).json({
       success: true,
-      message: `Gasto de RD$ ${expense.amount} en "${expense.description}" registrado exitosamente.`,
+      message: isDuplicate
+        ? `Alerta: Cargo posiblemente duplicado de RD$ ${expense.amount} en "${parsed.merchant}".`
+        : `Gasto de RD$ ${expense.amount} en "${parsed.merchant}" registrado exitosamente.`,
       expense,
+      isDuplicate,
       parsedBy: parsed.parsedBy,
     });
   } catch (error) {
     securityLogger.error('EMAIL_EXPENSE_ERROR', { message: error.message });
     res.status(500).json({ error: 'Error interno al procesar el gasto por correo.' });
+  }
+});
+
+// ─── iOS / Apple Shortcuts / Widget Summary Endpoint ──────────────────
+router.get('/widget-summary', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    let apiKey =
+      req.headers['x-api-key'] ||
+      req.query.token ||
+      (authHeader && authHeader.startsWith('Bearer trk_') ? authHeader.split(' ')[1] : null);
+
+    let user = null;
+    if (apiKey && typeof apiKey === 'string' && apiKey.startsWith('trk_')) {
+      user = await prisma.user.findUnique({
+        where: { apiKey },
+        include: { budgets: true },
+      });
+    }
+
+    // Fallback: Default to owner if requested without explicit apiKey
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: 'joseanibalmencia@gmail.com' },
+            { email: 'josemcboss@gmail.com' },
+          ],
+        },
+        include: { budgets: true },
+      });
+    }
+
+    if (!user) {
+      return res.status(401).json({ error: 'Token de Widget no válido.' });
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Sum of expenses this month
+    const expensesThisMonth = await prisma.expense.findMany({
+      where: {
+        userId: user.id,
+        date: { gte: startOfMonth },
+      },
+      include: { category: true },
+      orderBy: { date: 'desc' },
+    });
+
+    const totalSpent = expensesThisMonth.reduce((acc, curr) => acc + curr.amount, 0);
+
+    // Total budget
+    const totalBudget = (user.budgets || []).reduce((acc, curr) => acc + curr.amount, 0);
+    const budgetRemaining = totalBudget > 0 ? Math.max(0, totalBudget - totalSpent) : null;
+    const percentUsed = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : null;
+
+    // Latest expense
+    const latest = expensesThisMonth[0] || null;
+
+    // Top Category this month
+    const catTotals = {};
+    for (const exp of expensesThisMonth) {
+      const cName = exp.category?.name || 'Otros';
+      catTotals[cName] = (catTotals[cName] || 0) + exp.amount;
+    }
+    let topCategory = null;
+    let maxCatAmount = 0;
+    for (const [cName, amt] of Object.entries(catTotals)) {
+      if (amt > maxCatAmount) {
+        maxCatAmount = amt;
+        topCategory = cName;
+      }
+    }
+
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const monthLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+
+    res.json({
+      status: 'ok',
+      userName: user.name,
+      month: monthLabel,
+      totalSpent: Math.round(totalSpent * 100) / 100,
+      totalSpentFormatted: `RD$ ${totalSpent.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      totalBudget: totalBudget > 0 ? totalBudget : null,
+      budgetRemaining: budgetRemaining !== null ? Math.round(budgetRemaining * 100) / 100 : null,
+      budgetRemainingFormatted: budgetRemaining !== null ? `RD$ ${budgetRemaining.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Sin límite fijado',
+      percentUsed,
+      expensesCount: expensesThisMonth.length,
+      topCategory: topCategory || 'N/A',
+      lastExpense: latest ? {
+        description: latest.description,
+        amount: latest.amount,
+        formatted: `RD$ ${latest.amount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`,
+        category: latest.category?.name || 'Otros',
+        date: latest.date.toISOString().split('T')[0],
+      } : null,
+    });
+  } catch (error) {
+    securityLogger.error('WIDGET_SUMMARY_ERROR', { message: error.message });
+    res.status(500).json({ error: 'Error al generar resumen para el Widget.' });
   }
 });
 

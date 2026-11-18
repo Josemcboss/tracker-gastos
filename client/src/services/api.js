@@ -240,6 +240,10 @@ class ApiService {
     return this.request(`/dashboard/summary${qs ? `?${qs}` : ''}`);
   }
 
+  getAiInsights() {
+    return this.request('/dashboard/ai-insights');
+  }
+
   // ── Integrations (Apple Wallet, etc.) ──
   getIntegrationToken() {
     return this.request('/integrations/token');

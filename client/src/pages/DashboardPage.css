@@ -297,3 +297,122 @@
   font-weight: 700;
   display: block;
 }
+
+/* ── AI Financial Advisor Card ── */
+.ai-advisor-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(30, 27, 75, 0.55));
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: var(--radius-card, 16px);
+  padding: 16px;
+  margin: 14px 0 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.08);
+}
+
+.ai-advisor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ai-advisor-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #c4b5fd;
+}
+
+.ai-score-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-score-badge.excelente {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.ai-score-badge.estable {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.ai-score-badge.alerta {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.ai-headline {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  margin-bottom: 6px;
+}
+
+.ai-summary {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.ai-advice-box {
+  background: rgba(0, 0, 0, 0.25);
+  border-left: 3px solid #f59e0b;
+  padding: 8px 12px;
+  border-radius: 4px 8px 8px 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #fde68a;
+  line-height: 1.4;
+}
+
+.ai-btn-refresh {
+  background: transparent;
+  border: none;
+  color: #a78bfa;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.ai-btn-refresh:hover {
+  color: #ffffff;
+}
+
+.ai-advisor-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px dashed rgba(139, 92, 246, 0.35);
+  border-radius: 14px;
+  margin: 14px 0 16px;
+  cursor: pointer;
+  color: #c4b5fd;
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition: all 0.2s;
+}
+
+.ai-advisor-trigger:hover {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.6);
+}
