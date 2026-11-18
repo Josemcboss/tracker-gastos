@@ -6,6 +6,8 @@ const auth = require('../middleware/auth');
 const securityLogger = require('../utils/securityLogger');
 const { sanitizeString } = require('../middleware/validate');
 const { findBestCategory } = require('../utils/autoCategorize');
+const { parseBankEmail } = require('../utils/bankEmailParser');
+const { parseWithGemini } = require('../utils/geminiParser');
 
 const SECURE_FALLBACK = 'tracker_gastos_jwt_secret_key_2026_prod_secure_fallback_v1';
 const JWT_SECRET = process.env.JWT_SECRET || SECURE_FALLBACK;
@@ -183,7 +185,7 @@ router.post('/apple-wallet', async (req, res) => {
 });
 
 // ─── Telegram Bot Helper ───────────────────────────────────────────────
-const sendTelegramMessage = async (chatId, text) => {
+const sendTelegramMessage = async (chatId, text, parseMode = 'HTML') => {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
     console.log(`[Telegram Simulation -> ${chatId}]: ${text}`);
@@ -196,6 +198,7 @@ const sendTelegramMessage = async (chatId, text) => {
       body: JSON.stringify({
         chat_id: chatId,
         text,
+        parse_mode: parseMode,
       }),
     });
   } catch (err) {
@@ -361,6 +364,155 @@ router.post('/telegram/webhook', async (req, res) => {
   } catch (error) {
     console.error('Telegram Webhook Error:', error);
     return res.status(500).send('Error');
+  }
+});
+
+// ─── Ingest Expense from Automated Email (Gmail, Apps Script, etc.) ────
+router.post('/email-expense', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    let apiKey =
+      req.headers['x-api-key'] ||
+      req.query.token ||
+      req.body?.token ||
+      (authHeader && authHeader.startsWith('Bearer trk_') ? authHeader.split(' ')[1] : null);
+
+    let user = null;
+
+    if (apiKey && typeof apiKey === 'string' && apiKey.startsWith('trk_')) {
+      user = await prisma.user.findUnique({
+        where: { apiKey },
+        include: { categories: true },
+      });
+    }
+
+    // Fallback: If no apiKey was provided, match owner Jose Mencia by email/name
+    if (!user && (req.body?.ownerEmail === 'josemcboss@gmail.com' || req.body?.userEmail === 'josemcboss@gmail.com' || req.body?.userEmail === 'joseanibalmencia@gmail.com')) {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: 'joseanibalmencia@gmail.com' },
+            { email: 'josemcboss@gmail.com' },
+            { name: { contains: 'Jose Mencia', mode: 'insensitive' } },
+          ],
+        },
+        include: { categories: true },
+      });
+    }
+
+    if (!user) {
+      securityLogger.warn('EMAIL_EXPENSE_UNAUTHORIZED', { ip: req.ip });
+      return res.status(401).json({ error: 'Token de integración inválido o usuario no identificado.' });
+    }
+
+    const { subject = '', bodyText = '', bodyHtml = '', from = '', date, rawAmount, rawMerchant } = req.body;
+
+    // Clean HTML if plain text was omitted
+    let cleanText = bodyText;
+    if (!cleanText && bodyHtml) {
+      cleanText = bodyHtml.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ');
+    }
+
+    let parsed = null;
+
+    // 1. Direct explicit values if client pre-extracted them
+    if (rawAmount && !isNaN(parseFloat(rawAmount)) && parseFloat(rawAmount) > 0) {
+      parsed = {
+        amount: Math.round(parseFloat(rawAmount) * 100) / 100,
+        currency: req.body.currency === 'USD' ? 'USD' : 'DOP',
+        merchant: rawMerchant ? sanitizeString(rawMerchant).slice(0, 100) : 'Gasto por Correo',
+        date: date ? new Date(date) : new Date(),
+        paymentMethod: from ? `Correo (${from.slice(0, 30)})` : 'Notificación por Correo',
+        parsedBy: 'direct',
+      };
+    }
+
+    // 2. Intelligent Dominican Bank Regex Parser
+    if (!parsed) {
+      parsed = parseBankEmail({ subject, bodyText: cleanText, from, date });
+    }
+
+    // 3. Fallback: Gemini AI Parser
+    if (!parsed) {
+      parsed = await parseWithGemini({ subject, bodyText: cleanText, from });
+    }
+
+    if (!parsed || !parsed.amount || parsed.amount <= 0) {
+      securityLogger.info('EMAIL_EXPENSE_UNPARSED', { userId: user.id, subject });
+      return res.status(422).json({
+        error: 'No se detectó ninguna transacción de gasto en el correo recibido.',
+        subject,
+      });
+    }
+
+    // Category assignment
+    let targetCategory = null;
+    if (parsed.suggestedCategory) {
+      targetCategory = user.categories.find(
+        (c) => c.name.toLowerCase() === parsed.suggestedCategory.toLowerCase()
+      );
+    }
+    if (!targetCategory) {
+      targetCategory = findBestCategory(parsed.merchant, user.categories);
+    }
+    if (!targetCategory && user.categories.length > 0) {
+      targetCategory = user.categories.find((c) => c.isDefault) || user.categories[0];
+    }
+
+    if (!targetCategory) {
+      return res.status(400).json({ error: 'No hay categorías disponibles para registrar el gasto.' });
+    }
+
+    // Insert expense
+    const expense = await prisma.expense.create({
+      data: {
+        amount: parsed.amount,
+        description: sanitizeString(parsed.merchant).slice(0, 150),
+        date: parsed.date || new Date(),
+        paymentMethod: sanitizeString(parsed.paymentMethod || 'Correo Electrónico').slice(0, 50),
+        currency: parsed.currency || 'DOP',
+        exchangeRate: 1.0,
+        userId: user.id,
+        categoryId: targetCategory.id,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    securityLogger.info('EMAIL_EXPENSE_INGESTED', {
+      userId: user.id,
+      amount: expense.amount,
+      category: targetCategory.name,
+      parsedBy: parsed.parsedBy,
+    });
+
+    // Send Telegram Notification if configured
+    if (user.telegramChatId) {
+      const cur = expense.currency === 'USD' ? 'US$' : 'RD$';
+      const formattedAmount = `${cur} ${expense.amount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`;
+      const parsedBadge = parsed.parsedBy === 'gemini' ? '🤖 Gemini IA' : (parsed.parsedBy === 'direct' ? '⚡ Directo' : '🏦 Parser Bancario');
+
+      const message = `📧 <b>Nuevo Gasto Registrado desde Gmail</b>\n\n` +
+        `💵 <b>Monto:</b> ${formattedAmount}\n` +
+        `🏪 <b>Comercio:</b> ${expense.description}\n` +
+        `📂 <b>Categoría:</b> ${targetCategory.name}\n` +
+        `💳 <b>Origen:</b> ${expense.paymentMethod}\n` +
+        `📅 <b>Fecha:</b> ${new Date(expense.date).toLocaleDateString('es-DO')}\n\n` +
+        `<i>Modo: ${parsedBadge}</i>`;
+
+      await sendTelegramMessage(user.telegramChatId, message);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Gasto de RD$ ${expense.amount} en "${expense.description}" registrado exitosamente.`,
+      expense,
+      parsedBy: parsed.parsedBy,
+    });
+  } catch (error) {
+    securityLogger.error('EMAIL_EXPENSE_ERROR', { message: error.message });
+    res.status(500).json({ error: 'Error interno al procesar el gasto por correo.' });
   }
 });
 
